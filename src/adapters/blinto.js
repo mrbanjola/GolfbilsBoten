@@ -131,6 +131,7 @@ export class BlintoAdapter extends BaseAdapter {
           noReserve: false,
           reserveMet: false,
           ended,
+          metadata: {},
         });
       });
 

@@ -1,23 +1,15 @@
 import { BaseAdapter } from './base.js';
+import { fetchListingPageDetails } from './detail-fetch.js';
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export class BlocketAdapter extends BaseAdapter {
-  /**
-   * @param {string} baseUrl - API-bas-URL, t.ex. https://blocket-api.se/v1
-   * @param {number} delayMs - Delay mellan requests
-   */
   constructor(baseUrl, delayMs = 1000) {
     super('blocket');
     this.baseUrl = baseUrl.replace(/\/$/, '');
     this.delayMs = delayMs;
   }
 
-  /**
-   * Sök efter annonser på Blocket via blocket-api.se.
-   * @param {Object} watch
-   * @returns {Promise<import('./base.js').ListingResult[]>}
-   */
   async search(watch) {
     try {
       const params = new URLSearchParams();
@@ -27,7 +19,7 @@ export class BlocketAdapter extends BaseAdapter {
       if (watch.location) params.set('locations', watch.location);
 
       const url = `${this.baseUrl}/search?${params.toString()}`;
-      console.log(`[Blocket] Söker: ${url}`);
+      console.log(`[Blocket] Soker: ${url}`);
 
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), 10000);
@@ -46,49 +38,35 @@ export class BlocketAdapter extends BaseAdapter {
 
       if (!response.ok) {
         const body = await response.text().catch(() => '');
-        console.error(`[Blocket] API returnerade ${response.status} för query="${watch.query}" — body: ${body.slice(0, 300)}`);
+        console.error(`[Blocket] API returnerade ${response.status} for query="${watch.query}" - body: ${body.slice(0, 300)}`);
         return [];
       }
 
-      console.log(`[Blocket] Läser body...`);
       const data = await response.json();
       await sleep(this.delayMs);
 
-      const results = this._mapResults(data);
-      return this._filterByPrice(results, watch.min_price, watch.max_price);
+      const results = this.mapResults(data);
+      return this.filterByPrice(results, watch.min_price, watch.max_price);
     } catch (err) {
-      console.error(`[Blocket] Fel vid sökning för "${watch.query}":`, err.message);
+      console.error(`[Blocket] Fel vid sokning for "${watch.query}":`, err.message);
       return [];
     }
   }
 
-  /**
-   * Filtrerar resultat på pris client-side.
-   * @param {import('./base.js').ListingResult[]} listings
-   * @param {number|null} minPrice
-   * @param {number|null} maxPrice
-   * @returns {import('./base.js').ListingResult[]}
-   */
-  _filterByPrice(listings, minPrice, maxPrice) {
-    return listings.filter((l) => {
-      if (l.price === null || l.price <= 0) return false; // filtrera bort annonser utan pris
-      if (minPrice && l.price < minPrice) return false;
-      if (maxPrice && l.price > maxPrice) return false;
+  filterByPrice(listings, minPrice, maxPrice) {
+    return listings.filter((listing) => {
+      if (listing.price === null || listing.price <= 0) return false;
+      if (minPrice && listing.price < minPrice) return false;
+      if (maxPrice && listing.price > maxPrice) return false;
       return true;
     });
   }
 
-  /**
-   * Mappar API-respons till ListingResult[].
-   * blocket-api.se returnerar { data: [...] } eller direkt en array.
-   * @param {any} data
-   * @returns {import('./base.js').ListingResult[]}
-   */
-  _mapResults(data) {
+  mapResults(data) {
     const items = Array.isArray(data) ? data : (data?.docs ?? data?.data ?? data?.hits ?? data?.listings ?? []);
 
     if (!Array.isArray(items)) {
-      console.error('[Blocket] Oväntat responsformat:', JSON.stringify(data).slice(0, 200));
+      console.error('[Blocket] Ovantat responsformat:', JSON.stringify(data).slice(0, 200));
       return [];
     }
 
@@ -107,14 +85,30 @@ export class BlocketAdapter extends BaseAdapter {
         id,
         platform: 'blocket',
         title,
-        price: isNaN(price) ? null : price,
+        price: Number.isNaN(price) ? null : price,
         currency: 'SEK',
         location,
         url: adUrl,
         imageUrl,
         createdAt,
         tradeType,
+        metadata: {},
       };
-    }).filter((r) => r.id); // filtrera bort rader utan ID
+    }).filter((listing) => listing.id);
+  }
+
+  async getListingDetails(listing) {
+    try {
+      const details = await fetchListingPageDetails(listing.url);
+      return {
+        ...listing,
+        description: details.description,
+        detailText: details.detailText,
+        metadata: { ...(listing.metadata ?? {}), ...details.metadata },
+      };
+    } catch (err) {
+      console.warn(`[Blocket] Kunde inte hamta detaljsida for ${listing.id}: ${err.message}`);
+      return listing;
+    }
   }
 }

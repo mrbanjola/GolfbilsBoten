@@ -8,6 +8,25 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 /** @type {DatabaseSync} */
 let db;
 
+const DEFAULT_AI_SETTINGS = Object.freeze({
+  enabled: false,
+  model: 'claude-sonnet-4-20250514',
+  system_prompt: [
+    'You are a strict relevance filter for used-marketplace listings.',
+    'Your task is to decide whether each listing is genuinely relevant to the provided watch.',
+    'Use only the evidence in the payload.',
+    'Reject weak, ambiguous, accessory-only, spare-part, wanted, service, rental, or unrelated matches unless the payload clearly indicates they are relevant.',
+    'Return valid JSON only.',
+  ].join(' '),
+  global_rules: [
+    'Reject accessories, spare parts, and manuals when the watch appears to target a full item or vehicle.',
+    'Reject wanted ads, requests, and searches for sellers unless the watch explicitly targets those.',
+    'Reject category collisions caused by broad keywords if the title/description show a different product type.',
+  ].join('\n'),
+  timeout_ms: 15000,
+  batch_size: 8,
+});
+
 /**
  * Initierar SQLite-databasen och skapar tabeller om de inte finns.
  * @param {string} dataDir - Sökväg till data-katalogen
@@ -43,6 +62,17 @@ function runMigrations() {
       db.exec(sql);
       console.log(`[DB] Migration: lade till kolumn "${col}"`);
     }
+  }
+
+  seedDefaultSettings();
+}
+
+function seedDefaultSettings() {
+  const insert = db.prepare(
+    'INSERT OR IGNORE INTO settings (key, value, updated_at) VALUES (?, ?, datetime(\'now\'))'
+  );
+  for (const [key, value] of Object.entries(DEFAULT_AI_SETTINGS)) {
+    insert.run(key, serializeSettingValue(value));
   }
 }
 
@@ -146,4 +176,43 @@ export function markAdSeen(adId, platform, watchId, title, price, url) {
   db.prepare(
     'INSERT OR IGNORE INTO seen_ads (id, platform, watch_id, title, price, url) VALUES (?, ?, ?, ?, ?, ?)'
   ).run(adId, platform, watchId, title ?? null, price ?? null, url ?? null);
+}
+
+function serializeSettingValue(value) {
+  if (typeof value === 'boolean') return value ? 'true' : 'false';
+  return String(value);
+}
+
+function parseSettingValue(key, value) {
+  if (key === 'enabled') return value === 'true';
+  if (key === 'timeout_ms' || key === 'batch_size') return parseInt(value, 10);
+  return value;
+}
+
+export function getAiSettings() {
+  const rows = db.prepare('SELECT key, value FROM settings').all();
+  const settings = { ...DEFAULT_AI_SETTINGS };
+  for (const row of rows) {
+    if (row.key in settings) {
+      settings[row.key] = parseSettingValue(row.key, row.value);
+    }
+  }
+  return settings;
+}
+
+export function updateAiSettings(updates) {
+  const allowed = ['enabled', 'model', 'system_prompt', 'global_rules', 'timeout_ms', 'batch_size'];
+  const entries = Object.entries(updates).filter(([key]) => allowed.includes(key));
+  if (entries.length === 0) return getAiSettings();
+
+  const stmt = db.prepare(
+    'INSERT INTO settings (key, value, updated_at) VALUES (?, ?, datetime(\'now\')) ' +
+    'ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at'
+  );
+
+  for (const [key, value] of entries) {
+    stmt.run(key, serializeSettingValue(value));
+  }
+
+  return getAiSettings();
 }

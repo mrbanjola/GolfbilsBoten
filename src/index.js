@@ -33,6 +33,7 @@ startPollingEngine(
     traderaAppId: config.traderaAppId,
     traderaAppKey: config.traderaAppKey,
     traderaPollIntervalMinutes: config.traderaPollIntervalMinutes,
+    claudeApiKey: config.claudeApiKey,
   },
   async (listings, watch) => {
     if (listings.length === 1) {

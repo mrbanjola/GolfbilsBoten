@@ -11,6 +11,7 @@ export const config = {
   traderaAppId: process.env.TRADERA_APP_ID || null,
   traderaAppKey: process.env.TRADERA_APP_KEY || null,
   traderaPollIntervalMinutes: parseInt(process.env.TRADERA_POLL_INTERVAL_MINUTES ?? '30', 10),
+  claudeApiKey: process.env.CLAUDE_API_KEY || null,
   // Kommaseparerade nummer att tagga i notiser, t.ex. "46701234567,46709876543"
   mentionJids: (process.env.MENTION_JIDS ?? '')
     .split(',')

@@ -1,14 +1,10 @@
 import { BaseAdapter } from './base.js';
+import { fetchListingPageDetails } from './detail-fetch.js';
 
 const BASE_URL = 'https://api.tradera.com/v4';
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export class TraderaAdapter extends BaseAdapter {
-  /**
-   * @param {string} appId
-   * @param {string} appKey
-   * @param {number} delayMs
-   */
   constructor(appId, appKey, delayMs = 1000) {
     super('tradera');
     this.appId = appId;
@@ -16,10 +12,6 @@ export class TraderaAdapter extends BaseAdapter {
     this.delayMs = delayMs;
   }
 
-  /**
-   * @param {Object} watch
-   * @returns {Promise<import('./base.js').ListingResult[]>}
-   */
   async search(watch) {
     try {
       const params = new URLSearchParams();
@@ -27,7 +19,7 @@ export class TraderaAdapter extends BaseAdapter {
       params.set('pageNumber', '1');
 
       const url = `${BASE_URL}/search?${params.toString()}`;
-      console.log(`[Tradera] Söker: ${url}`);
+      console.log(`[Tradera] Soker: ${url}`);
 
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), 15000);
@@ -48,26 +40,22 @@ export class TraderaAdapter extends BaseAdapter {
 
       if (!response.ok) {
         const body = await response.text().catch(() => '');
-        console.error(`[Tradera] API returnerade ${response.status} — ${body.slice(0, 200)}`);
+        console.error(`[Tradera] API returnerade ${response.status} - ${body.slice(0, 200)}`);
         return [];
       }
 
       const data = await response.json();
       await sleep(this.delayMs);
 
-      const results = this._mapResults(data);
-      return this._filterByPrice(results, watch.min_price, watch.max_price);
+      const results = this.mapResults(data);
+      return this.filterByPrice(results, watch.min_price, watch.max_price);
     } catch (err) {
-      console.error(`[Tradera] Fel vid sökning för "${watch.query}":`, err.message);
+      console.error(`[Tradera] Fel vid sokning for "${watch.query}":`, err.message);
       return [];
     }
   }
 
-  /**
-   * @param {any} data
-   * @returns {import('./base.js').ListingResult[]}
-   */
-  _mapResults(data) {
+  mapResults(data) {
     const items = data?.items ?? [];
     if (!Array.isArray(items)) return [];
 
@@ -76,7 +64,7 @@ export class TraderaAdapter extends BaseAdapter {
       const title = item.shortDescription ?? '';
       const price = item.buyItNowPrice ?? item.nextBid ?? null;
       const url = item.itemUrl?.replace('http://', 'https://') ?? '';
-      const imageUrl = item.imageLinks?.find(l => l.format === 'gallery')?.url
+      const imageUrl = item.imageLinks?.find((link) => link.format === 'gallery')?.url
         ?? item.thumbnailLink
         ?? undefined;
 
@@ -86,26 +74,37 @@ export class TraderaAdapter extends BaseAdapter {
         title,
         price: price !== null ? Number(price) : null,
         currency: 'SEK',
-        location: '',  // Tradera returnerar ingen plats i sökresultatet
+        location: '',
         url,
         imageUrl,
         createdAt: undefined,
-        tradeType: item.itemType === 'WantedItem' ? 'Köpes' : 'Säljes',
+        tradeType: item.itemType === 'WantedItem' ? 'Kopes' : 'Saljes',
+        metadata: {},
       };
-    }).filter((r) => r.id);
+    }).filter((listing) => listing.id);
   }
 
-  /**
-   * @param {import('./base.js').ListingResult[]} listings
-   * @param {number|null} minPrice
-   * @param {number|null} maxPrice
-   */
-  _filterByPrice(listings, minPrice, maxPrice) {
-    return listings.filter((l) => {
-      if (l.price === null || l.price <= 0) return false;
-      if (minPrice && l.price < minPrice) return false;
-      if (maxPrice && l.price > maxPrice) return false;
+  filterByPrice(listings, minPrice, maxPrice) {
+    return listings.filter((listing) => {
+      if (listing.price === null || listing.price <= 0) return false;
+      if (minPrice && listing.price < minPrice) return false;
+      if (maxPrice && listing.price > maxPrice) return false;
       return true;
     });
+  }
+
+  async getListingDetails(listing) {
+    try {
+      const details = await fetchListingPageDetails(listing.url);
+      return {
+        ...listing,
+        description: details.description,
+        detailText: details.detailText,
+        metadata: { ...(listing.metadata ?? {}), ...details.metadata },
+      };
+    } catch (err) {
+      console.warn(`[Tradera] Kunde inte hamta detaljsida for ${listing.id}: ${err.message}`);
+      return listing;
+    }
   }
 }

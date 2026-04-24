@@ -24,3 +24,10 @@ CREATE TABLE IF NOT EXISTS seen_ads (
   PRIMARY KEY (id, platform),
   FOREIGN KEY (watch_id) REFERENCES watches(id) ON DELETE CASCADE
 );
+
+-- App-inställningar (AI prompt, modell, flaggor, etc.)
+CREATE TABLE IF NOT EXISTS settings (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL,
+  updated_at TEXT DEFAULT (datetime('now'))
+);

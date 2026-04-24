@@ -137,6 +137,7 @@ export class KlaravikAdapter extends BaseAdapter {
           noReserve,
           reserveMet,
           ended: false,
+          metadata: {},
         });
       });
 
