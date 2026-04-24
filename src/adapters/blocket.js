@@ -18,7 +18,8 @@ export class BlocketAdapter extends BaseAdapter {
       params.set('sort_order', watch.sort_order ?? 'PUBLISHED_DESC');
       if (watch.location) params.set('locations', watch.location);
 
-      const url = `${this.baseUrl}/search?${params.toString()}`;
+      const endpoint = watch.is_car ? '/search/car' : '/search';
+      const url = `${this.baseUrl}${endpoint}?${params.toString()}`;
       console.log(`[Blocket] Soker: ${url}`);
 
       const controller = new AbortController();

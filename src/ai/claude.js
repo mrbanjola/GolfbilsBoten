@@ -14,6 +14,7 @@ Return JSON only with this exact shape:
 Rules:
 - Use only the provided listing data.
 - Follow the system prompt and global rules above when deciding relevance.
+- Title and short description are the strongest signals. Use long detail text only as supporting evidence.
 - If the query is broad, prefer inclusion unless the listing is clearly the wrong type of thing.
 - If the query is specific, require a closer match.
 - The note field is optional and should stay short.`;

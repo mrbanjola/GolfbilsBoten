@@ -45,9 +45,10 @@ export function startServer(port, callbacks) {
   });
 
   app.post('/api/watches', (req, res) => {
-    const { query, max_price, min_price, platforms } = req.body;
+    const { query, max_price, min_price, platforms, is_car } = req.body;
     if (!query?.trim()) return res.status(400).json({ error: 'query kravs' });
     const id = addWatch(query.trim(), max_price || null, min_price || null, platforms || 'blocket');
+    if (is_car) updateWatch(id, 'is_car', 1);
     res.json({ id });
   });
 
@@ -60,7 +61,7 @@ export function startServer(port, callbacks) {
 
   app.patch('/api/watches/:id', (req, res) => {
     const id = parseInt(req.params.id, 10);
-    const allowed = ['location', 'ad_type', 'exclude_words', 'sort_order', 'max_price', 'min_price', 'platforms'];
+    const allowed = ['location', 'ad_type', 'exclude_words', 'sort_order', 'max_price', 'min_price', 'platforms', 'is_car'];
     const updates = Object.entries(req.body).filter(([key]) => allowed.includes(key));
     if (updates.length === 0) return res.status(400).json({ error: 'Inga giltiga falt' });
     for (const [field, value] of updates) {
@@ -211,6 +212,10 @@ function adminHtml() {
           <option value="blocket,tradera,klaravik,blinto">Alla</option>
         </select>
       </div>
+      <div class="toggle" style="align-self:end;padding-bottom:8px">
+        <input id="new-is-car" type="checkbox">
+        <label for="new-is-car" style="margin:0">Blocket bilsokning</label>
+      </div>
       <div>
         <label>Exkludera ord (kommaseparerade)</label>
         <input id="new-exclude" placeholder="t.ex. kopes,sokes,reservdelar">
@@ -305,6 +310,10 @@ function adminHtml() {
         <option value="blocket,tradera,klaravik,blinto">Alla</option>
       </select>
     </div>
+    <div class="toggle" style="align-self:end;padding-bottom:8px">
+      <input id="edit-is-car" type="checkbox">
+      <label for="edit-is-car" style="margin:0">Blocket bilsokning</label>
+    </div>
     <div>
       <label>Exkludera ord</label>
       <input id="edit-exclude" placeholder="kopes,sokes,reservdelar">
@@ -395,8 +404,9 @@ function watchRow(watch) {
       : '<span class="badge">Alla</span>';
   const excl = watch.exclude_words ? \`<span style="font-size:.8rem;color:#999">\${watch.exclude_words}</span>\` : '-';
   const platforms = (watch.platforms || 'blocket').split(',').map((platform) => platform.trim()).join(' + ');
+  const queryLabel = watch.is_car ? \`\${watch.query} <span class="badge">Bil</span>\` : watch.query;
   return \`<tr>
-    <td><strong>\${watch.query}</strong></td>
+    <td><strong>\${queryLabel}</strong></td>
     <td>\${price}</td>
     <td>\${loc}</td>
     <td>\${adBadge}</td>
@@ -416,6 +426,7 @@ async function addWatch(event) {
     max_price: parseInt(document.getElementById('new-max').value, 10) || null,
     min_price: parseInt(document.getElementById('new-min').value, 10) || null,
     platforms: document.getElementById('new-platforms').value,
+    is_car: document.getElementById('new-is-car').checked,
   };
   const created = await api('/api/watches', {
     method: 'POST',
@@ -429,6 +440,7 @@ async function addWatch(event) {
     body: JSON.stringify({
       location: document.getElementById('new-location').value || null,
       ad_type: document.getElementById('new-adtype').value,
+      is_car: document.getElementById('new-is-car').checked ? 1 : 0,
       exclude_words: document.getElementById('new-exclude').value.trim() || null,
     }),
   });
@@ -453,6 +465,7 @@ function openEdit(watch) {
   document.getElementById('edit-location').value = watch.location ?? '';
   document.getElementById('edit-adtype').value = watch.ad_type ?? 'all';
   document.getElementById('edit-platforms').value = watch.platforms ?? 'blocket';
+  document.getElementById('edit-is-car').checked = Boolean(watch.is_car);
   document.getElementById('edit-exclude').value = watch.exclude_words ?? '';
   document.getElementById('edit-dialog').showModal();
 }
@@ -469,6 +482,7 @@ async function saveEdit(event) {
       location: document.getElementById('edit-location').value || null,
       ad_type: document.getElementById('edit-adtype').value,
       platforms: document.getElementById('edit-platforms').value,
+      is_car: document.getElementById('edit-is-car').checked ? 1 : 0,
       exclude_words: document.getElementById('edit-exclude').value.trim() || null,
     }),
   });

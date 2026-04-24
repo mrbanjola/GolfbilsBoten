@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS watches (
   max_price INTEGER,
   min_price INTEGER,
   platforms TEXT NOT NULL DEFAULT 'blocket',
+  is_car INTEGER DEFAULT 0,
   region TEXT,
   category TEXT,
   created_at TEXT DEFAULT (datetime('now')),

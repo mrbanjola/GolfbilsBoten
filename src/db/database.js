@@ -56,6 +56,7 @@ function runMigrations() {
     { col: 'ad_type',       sql: "ALTER TABLE watches ADD COLUMN ad_type TEXT DEFAULT 'all'" },
     { col: 'exclude_words', sql: 'ALTER TABLE watches ADD COLUMN exclude_words TEXT' },
     { col: 'sort_order',    sql: "ALTER TABLE watches ADD COLUMN sort_order TEXT DEFAULT 'PUBLISHED_DESC'" },
+    { col: 'is_car',        sql: 'ALTER TABLE watches ADD COLUMN is_car INTEGER DEFAULT 0' },
   ];
   for (const { col, sql } of migrations) {
     if (!existing.includes(col)) {
@@ -104,7 +105,7 @@ export function getWatchesList() {
  */
 export function addWatch(query, maxPrice = null, minPrice = null, platforms = 'blocket') {
   const stmt = db.prepare(
-    'INSERT INTO watches (query, max_price, min_price, platforms) VALUES (?, ?, ?, ?)'
+    'INSERT INTO watches (query, max_price, min_price, platforms, is_car) VALUES (?, ?, ?, ?, 0)'
   );
   const result = stmt.run(query, maxPrice, minPrice, platforms);
   return Number(result.lastInsertRowid);
@@ -137,7 +138,7 @@ export function getWatchByIndex(index) {
  * @param {string|number|null} value
  */
 export function updateWatch(id, field, value) {
-  const allowed = ['location', 'ad_type', 'exclude_words', 'sort_order', 'max_price', 'min_price', 'platforms'];
+  const allowed = ['location', 'ad_type', 'exclude_words', 'sort_order', 'max_price', 'min_price', 'platforms', 'is_car'];
   if (!allowed.includes(field)) throw new Error(`Otillåtet fält: ${field}`);
   db.prepare(`UPDATE watches SET ${field} = ? WHERE id = ?`).run(value, id);
 }

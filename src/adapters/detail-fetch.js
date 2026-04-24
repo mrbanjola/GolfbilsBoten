@@ -9,6 +9,27 @@ function truncate(text, maxLength) {
   return text.length > maxLength ? text.slice(0, maxLength) : text;
 }
 
+function extractRelevantDetailText($) {
+  const selectors = [
+    '[itemprop="description"]',
+    '[data-testid*="description"]',
+    '[class*="description"]',
+    '[class*="desc"]',
+    'main article',
+    'main',
+    'article',
+  ];
+
+  for (const selector of selectors) {
+    const text = normalizeWhitespace($(selector).first().text());
+    if (text && text.length >= 80) {
+      return truncate(text, 4000);
+    }
+  }
+
+  return null;
+}
+
 export async function fetchListingPageDetails(url, headers = {}) {
   if (!url) return { description: null, detailText: null, metadata: {} };
 
@@ -46,7 +67,7 @@ export async function fetchListingPageDetails(url, headers = {}) {
       || ''
     ) || null;
 
-    const detailText = truncate(normalizeWhitespace($('body').text()), 12000) || null;
+    const detailText = extractRelevantDetailText($);
 
     return {
       description,
