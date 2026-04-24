@@ -4,7 +4,7 @@ import { BlocketAdapter } from '../adapters/blocket.js';
 import { TraderaAdapter } from '../adapters/tradera.js';
 import { KlaravikAdapter } from '../adapters/klaravik.js';
 import { BlintoAdapter } from '../adapters/blinto.js';
-import { filterAndMarkNew, markAllSeen } from './dedup.js';
+import { filterAndMarkNew, getUnseenListings, markAllSeen } from './dedup.js';
 import { applyAllFilters } from './filter.js';
 import { filterListingsWithClaude } from '../ai/claude.js';
 
@@ -131,15 +131,16 @@ export async function runPollCycle({ manual = false } = {}) {
           continue;
         }
 
+        const unseen = getUnseenListings(filtered);
         const aiFiltered = await applyAiRelevanceFilter({
           adapter,
           watch,
-          listings: filtered,
+          listings: unseen,
           aiSettings,
         });
 
         const newListings = filterAndMarkNew(aiFiltered, watch.id);
-        console.log(`[Poller] "${watch.query}" (${platformName}): ${filtered.length} efter regler, ${aiFiltered.length} efter AI, ${newListings.length} nya`);
+        console.log(`[Poller] "${watch.query}" (${platformName}): ${filtered.length} efter regler, ${unseen.length} osedda, ${aiFiltered.length} efter AI, ${newListings.length} nya`);
         totalNew += newListings.length;
 
         const maxPerBatch = 10;
