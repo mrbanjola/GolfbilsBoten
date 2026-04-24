@@ -82,6 +82,17 @@ async function applyAiRelevanceFilter({ adapter, watch, listings, aiSettings }) 
       if (!result.skipped) {
         const rejected = enriched.length - result.approved.length;
         console.log(`[Claude] "${watch.query}" - godkande ${result.approved.length}/${enriched.length}, avslog ${rejected}`);
+
+        const decisionMap = new Map(result.decisions.map((decision) => [decision.id, decision]));
+        for (const listing of enriched) {
+          const decision = decisionMap.get(listing.id);
+          if (!decision || decision.keep) continue;
+          const priceLabel = listing.price != null ? `${listing.price} ${listing.currency ?? 'SEK'}` : 'okant pris';
+          console.log(
+            `[Claude][Reject] "${watch.query}" - ${listing.id} - ${listing.title} - ${priceLabel} - ${decision.reasonCode}` +
+            `${decision.note ? ` - ${decision.note}` : ''}`
+          );
+        }
       }
 
       approved.push(...result.approved);
