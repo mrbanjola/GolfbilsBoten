@@ -1,0 +1,19 @@
+{
+  "name": "begagnat-monitor",
+  "version": "1.0.0",
+  "description": "Bevakar svenska begagnatmarknadsplatser och skickar WhatsApp-notiser",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js"
+  },
+  "dependencies": {
+    "@whiskeysockets/baileys": "latest",
+    "cheerio": "^1.2.0",
+    "dotenv": "^16",
+    "express": "^4",
+    "link-preview-js": "^3.2.0",
+    "node-cron": "^3",
+    "qrcode-terminal": "^0.12"
+  }
+}
