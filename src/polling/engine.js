@@ -57,6 +57,9 @@ async function enrichListingsForAi(adapter, listings, batchSize) {
 
 async function applyAiRelevanceFilter({ adapter, watch, listings, aiSettings }) {
   if (!aiSettings.enabled || listings.length === 0) {
+    if (!aiSettings.enabled) {
+      console.log(`[Claude] AI-filtrering avstangd for "${watch.query}"`);
+    }
     return listings;
   }
 
@@ -99,6 +102,7 @@ export async function runPollCycle({ manual = false } = {}) {
   const pollTradera = manual || (now - lastTraderaPoll >= traderaPollIntervalMs);
 
   console.log(`[Poller] Kor poll-cykel - ${watches.length} aktiva bevakningar${pollTradera ? ' (inkl. Tradera)' : ''}`);
+  console.log(`[Claude] Installningar - enabled=${aiSettings.enabled} model=${aiSettings.model} batch=${aiSettings.batch_size} timeout=${aiSettings.timeout_ms} apiKey=${claudeApiKey ? 'yes' : 'no'}`);
   let totalNew = 0;
 
   for (const watch of watches) {

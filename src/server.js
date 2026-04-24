@@ -17,16 +17,16 @@ function normalizeAiSettings(body) {
 
 function validateAiSettings(settings) {
   if (settings.enabled) {
-    if (!settings.model) return 'Model krävs när AI-filtrering är aktiverad.';
-    if (!settings.system_prompt) return 'System prompt krävs när AI-filtrering är aktiverad.';
+    if (!settings.model) return 'Model kravs nar AI-filtrering ar aktiverad.';
+    if (!settings.system_prompt) return 'System prompt kravs nar AI-filtrering ar aktiverad.';
   }
 
   if ('timeout_ms' in settings && (!Number.isInteger(settings.timeout_ms) || settings.timeout_ms < 1000)) {
-    return 'Timeout måste vara minst 1000 ms.';
+    return 'Timeout maste vara minst 1000 ms.';
   }
 
   if ('batch_size' in settings && (!Number.isInteger(settings.batch_size) || settings.batch_size < 1 || settings.batch_size > 25)) {
-    return 'Batch size måste vara mellan 1 och 25.';
+    return 'Batch size maste vara mellan 1 och 25.';
   }
 
   return null;
@@ -46,7 +46,7 @@ export function startServer(port, callbacks) {
 
   app.post('/api/watches', (req, res) => {
     const { query, max_price, min_price, platforms } = req.body;
-    if (!query?.trim()) return res.status(400).json({ error: 'query krävs' });
+    if (!query?.trim()) return res.status(400).json({ error: 'query kravs' });
     const id = addWatch(query.trim(), max_price || null, min_price || null, platforms || 'blocket');
     res.json({ id });
   });
@@ -62,7 +62,7 @@ export function startServer(port, callbacks) {
     const id = parseInt(req.params.id, 10);
     const allowed = ['location', 'ad_type', 'exclude_words', 'sort_order', 'max_price', 'min_price', 'platforms'];
     const updates = Object.entries(req.body).filter(([key]) => allowed.includes(key));
-    if (updates.length === 0) return res.status(400).json({ error: 'Inga giltiga fält' });
+    if (updates.length === 0) return res.status(400).json({ error: 'Inga giltiga falt' });
     for (const [field, value] of updates) {
       updateWatch(id, field, value === '' ? null : value);
     }
@@ -99,7 +99,7 @@ export function startServer(port, callbacks) {
   });
 
   app.listen(port, () => {
-    console.log(`[Server] Lyssnar på port ${port} - Admin: http://localhost:${port}/admin`);
+    console.log(`[Server] Lyssnar pa port ${port} - Admin: http://localhost:${port}/admin`);
   });
 
   return app;
@@ -166,15 +166,15 @@ function adminHtml() {
   <h1>Begagnat Monitor</h1>
   <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
     <span id="search-result"></span>
-    <button class="btn-search" onclick="manualSearch()">Sök nu</button>
+    <button class="btn-search" onclick="manualSearch()">Sok nu</button>
   </div>
 </header>
 <main>
   <div class="card">
-    <h2>Lägg till bevakning</h2>
+    <h2>Lagg till bevakning</h2>
     <form class="add-form" onsubmit="addWatch(event)">
       <div class="full">
-        <label>Sökterm *</label>
+        <label>Sokterm *</label>
         <input id="new-query" placeholder="t.ex. Yamaha utombordare" required>
       </div>
       <div>
@@ -195,8 +195,8 @@ function adminHtml() {
         <label>Annonstyp</label>
         <select id="new-adtype">
           <option value="all">Alla</option>
-          <option value="sell">Bara säljes</option>
-          <option value="buy">Bara köpes</option>
+          <option value="sell">Bara saljes</option>
+          <option value="buy">Bara kopes</option>
         </select>
       </div>
       <div>
@@ -213,10 +213,10 @@ function adminHtml() {
       </div>
       <div>
         <label>Exkludera ord (kommaseparerade)</label>
-        <input id="new-exclude" placeholder="t.ex. köpes,sökes,reservdelar">
+        <input id="new-exclude" placeholder="t.ex. kopes,sokes,reservdelar">
       </div>
       <div class="full" style="text-align:right">
-        <button type="submit" class="btn-primary">Lägg till</button>
+        <button type="submit" class="btn-primary">Lagg till</button>
       </div>
     </form>
   </div>
@@ -241,7 +241,7 @@ function adminHtml() {
         <input id="ai-timeout-ms" type="number" min="1000" step="1000">
       </div>
       <div class="full">
-        <div class="hint">API-nyckeln redigeras inte här. Servern läser <code>CLAUDE_API_KEY</code> från <code>.env</code>.</div>
+        <div class="hint">API-nyckeln redigeras inte har. Servern laser <code>CLAUDE_API_KEY</code> fran <code>.env</code>.</div>
       </div>
       <div class="full">
         <label>System prompt</label>
@@ -249,10 +249,10 @@ function adminHtml() {
       </div>
       <div class="full">
         <label>Globala regler</label>
-        <textarea id="ai-global-rules" placeholder="Projektregler som hjälper Claude att avgöra relevans"></textarea>
+        <textarea id="ai-global-rules" placeholder="Projektregler som hjalper Claude att avgora relevans"></textarea>
       </div>
       <div class="full" style="text-align:right">
-        <button type="submit" class="btn-primary">Spara AI-inställningar</button>
+        <button type="submit" class="btn-primary">Spara AI-installningar</button>
       </div>
     </form>
   </div>
@@ -264,11 +264,11 @@ function adminHtml() {
 </main>
 
 <dialog id="edit-dialog">
-  <h3>Ändra bevakning</h3>
+  <h3>Andra bevakning</h3>
   <form onsubmit="saveEdit(event)">
     <input type="hidden" id="edit-id">
     <div>
-      <label>Sökterm</label>
+      <label>Sokterm</label>
       <input id="edit-query" readonly style="background:#f5f5f5;color:#999">
     </div>
     <div>
@@ -289,8 +289,8 @@ function adminHtml() {
       <label>Annonstyp</label>
       <select id="edit-adtype">
         <option value="all">Alla</option>
-        <option value="sell">Bara säljes</option>
-        <option value="buy">Bara köpes</option>
+        <option value="sell">Bara saljes</option>
+        <option value="buy">Bara kopes</option>
       </select>
     </div>
     <div>
@@ -307,7 +307,7 @@ function adminHtml() {
     </div>
     <div>
       <label>Exkludera ord</label>
-      <input id="edit-exclude" placeholder="köpes,sökes,reservdelar">
+      <input id="edit-exclude" placeholder="kopes,sokes,reservdelar">
     </div>
     <div class="dialog-actions">
       <button type="button" class="btn-edit" onclick="document.getElementById('edit-dialog').close()">Avbryt</button>
@@ -325,7 +325,7 @@ async function api(url, options = {}) {
   const response = await fetch(url, options);
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
-    throw new Error(data.error || 'Begäran misslyckades');
+    throw new Error(data.error || 'Begaran misslyckades');
   }
   return data;
 }
@@ -364,7 +364,7 @@ async function saveAiSettings(event) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
-  toast('AI-inställningar sparade.');
+  toast('AI-installningar sparade.');
 }
 
 async function loadWatches() {
@@ -376,7 +376,7 @@ async function loadWatches() {
   }
   el.innerHTML = \`<table>
     <thead><tr>
-      <th>Sökterm</th><th>Pris</th><th>Region</th><th>Typ</th><th>Plattformar</th><th>Exkluderar</th><th></th>
+      <th>Sokterm</th><th>Pris</th><th>Region</th><th>Typ</th><th>Plattformar</th><th>Exkluderar</th><th></th>
     </tr></thead>
     <tbody>\${watches.map(watchRow).join('')}</tbody>
   </table>\`;
@@ -389,9 +389,9 @@ function watchRow(watch) {
   ].filter(Boolean).join(' - ') || '-';
   const loc = locations.find((location) => location.value === watch.location)?.label ?? 'Hela Sverige';
   const adBadge = watch.ad_type === 'sell'
-    ? '<span class="badge sell">Säljes</span>'
+    ? '<span class="badge sell">Saljes</span>'
     : watch.ad_type === 'buy'
-      ? '<span class="badge buy">Köpes</span>'
+      ? '<span class="badge buy">Kopes</span>'
       : '<span class="badge">Alla</span>';
   const excl = watch.exclude_words ? \`<span style="font-size:.8rem;color:#999">\${watch.exclude_words}</span>\` : '-';
   const platforms = (watch.platforms || 'blocket').split(',').map((platform) => platform.trim()).join(' + ');
@@ -403,7 +403,7 @@ function watchRow(watch) {
     <td><span style="font-size:.8rem">\${platforms}</span></td>
     <td>\${excl}</td>
     <td><div class="actions">
-      <button class="btn-edit" onclick='openEdit(\${JSON.stringify(watch)})'>Ändra</button>
+      <button class="btn-edit" onclick='openEdit(\${JSON.stringify(watch)})'>Andra</button>
       <button class="btn-danger" onclick="deleteWatch(\${watch.id}, '\${watch.query.replace(/'/g, "\\\\'")}')">Ta bort</button>
     </div></td>
   </tr>\`;
@@ -479,10 +479,10 @@ async function saveEdit(event) {
 
 async function manualSearch() {
   const el = document.getElementById('search-result');
-  el.textContent = 'Söker...';
+  el.textContent = 'Soker...';
   try {
     const result = await api('/api/search', { method: 'POST' });
-    el.textContent = result.totalNew > 0 ? \`\${result.totalNew} nya träffar.\` : 'Ingenting nytt.';
+    el.textContent = result.totalNew > 0 ? \`\${result.totalNew} nya traffar.\` : 'Ingenting nytt.';
   } catch (err) {
     el.textContent = err.message;
   }
