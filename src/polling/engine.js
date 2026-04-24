@@ -14,6 +14,7 @@ const adapters = new Map();
 let lastTraderaPoll = 0;
 let traderaPollIntervalMs = 30 * 60 * 1000;
 let claudeApiKey = null;
+const INITIAL_SCAN_AI_LIMIT = 20;
 
 export function startPollingEngine(config, onNewListing, onInitialScan) {
   notifyCallback = onNewListing;
@@ -124,9 +125,20 @@ export async function runPollCycle({ manual = false } = {}) {
         if (!watch.initial_scan_done) {
           markAllSeen(filtered, watch.id);
           markInitialScanDone(watch.id);
-          console.log(`[Poller] Initial scan klar for bevakning #${watch.id} "${watch.query}" - ${filtered.length} annonser indexerade`);
-          if (summaryCallback && filtered.length > 0) {
-            await summaryCallback(filtered, watch);
+          const initialAiCandidates = filtered.slice(0, INITIAL_SCAN_AI_LIMIT);
+          const initialApproved = await applyAiRelevanceFilter({
+            adapter,
+            watch,
+            listings: initialAiCandidates,
+            aiSettings,
+          });
+
+          console.log(
+            `[Poller] Initial scan klar for bevakning #${watch.id} "${watch.query}" - ` +
+            `${filtered.length} annonser indexerade, ${initialAiCandidates.length} granskade av AI, ${initialApproved.length} godkanda`
+          );
+          if (summaryCallback && initialApproved.length > 0) {
+            await summaryCallback(initialApproved, watch);
           }
           continue;
         }
@@ -139,8 +151,14 @@ export async function runPollCycle({ manual = false } = {}) {
           aiSettings,
         });
 
+        const approvedIds = new Set(aiFiltered.map((listing) => listing.id));
+        const rejectedUnseen = unseen.filter((listing) => !approvedIds.has(listing.id));
+        if (rejectedUnseen.length > 0) {
+          markAllSeen(rejectedUnseen, watch.id);
+        }
+
         const newListings = filterAndMarkNew(aiFiltered, watch.id);
-        console.log(`[Poller] "${watch.query}" (${platformName}): ${filtered.length} efter regler, ${unseen.length} osedda, ${aiFiltered.length} efter AI, ${newListings.length} nya`);
+        console.log(`[Poller] "${watch.query}" (${platformName}): ${filtered.length} efter regler, ${unseen.length} osedda, ${aiFiltered.length} efter AI, ${rejectedUnseen.length} avvisade/markerade, ${newListings.length} nya`);
         totalNew += newListings.length;
 
         const maxPerBatch = 10;
