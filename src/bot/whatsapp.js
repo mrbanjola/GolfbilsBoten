@@ -59,6 +59,7 @@ async function connect(dataDir) {
 
     if (qr) {
       console.log('\n[Bot] Skanna QR-koden med WhatsApp (Inställningar → Länkade enheter → Länka en enhet):\n');
+      console.log(`[Bot] QR: https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qr)}`);
       qrcode.generate(qr, { small: true });
     }
 
