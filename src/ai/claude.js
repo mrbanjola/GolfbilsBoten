@@ -13,16 +13,38 @@ Return JSON only with this exact shape:
 
 Rules:
 - Use only the provided listing data.
-- Reject if the match is weak, indirect, or likely the wrong product.
-- Reject accessories, spare parts, manuals, rentals, services, and wanted ads unless clearly relevant.
-- Keep only listings that are likely to be useful notifications for the watch.`;
+- Follow the system prompt and global rules above when deciding relevance.
+- If the query is broad, prefer inclusion unless the listing is clearly the wrong type of thing.
+- If the query is specific, require a closer match.
+- The note field is optional and should stay short.`;
+}
+
+function classifyQueryScope(query) {
+  const normalized = String(query ?? '').trim().toLowerCase();
+  if (!normalized) return 'broad';
+
+  const tokens = normalized.split(/\s+/).filter(Boolean);
+  const hasDigits = /\d/.test(normalized);
+  const hasPunctuationModel = /[-/]/.test(normalized);
+
+  if (tokens.length >= 3 || hasDigits || hasPunctuationModel) {
+    return 'specific';
+  }
+
+  return 'broad';
 }
 
 function buildUserPayload(watch, listings) {
+  const queryScope = classifyQueryScope(watch.query);
+
   return {
     watch: {
       id: watch.id,
       query: watch.query,
+      query_scope: queryScope,
+      matching_guidance: queryScope === 'broad'
+        ? 'This is a broad query. Approve listings unless they are clearly unrelated, accessories, spare parts, services, rentals, or wanted ads.'
+        : 'This is a specific query. Require a closer title/description match before approving.',
       min_price: watch.min_price ?? null,
       max_price: watch.max_price ?? null,
       location: watch.location ?? null,
