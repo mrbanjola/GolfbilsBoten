@@ -61,8 +61,16 @@ function extractTextContent(messageJson) {
     .trim();
 }
 
+function stripCodeFences(text) {
+  const trimmed = text.trim();
+  const fenced = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
+  if (fenced) return fenced[1].trim();
+  return trimmed;
+}
+
 function parseClaudeResponse(text, expectedIds) {
-  const parsed = JSON.parse(text);
+  const normalized = stripCodeFences(text);
+  const parsed = JSON.parse(normalized);
   if (!parsed || !Array.isArray(parsed.results)) {
     throw new Error('Claude response saknar results-array');
   }
