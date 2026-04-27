@@ -50,18 +50,29 @@ export function initDatabase(dataDir) {
  * Idempotent migrering — lägger till kolumner som saknas.
  */
 function runMigrations() {
-  const existing = db.prepare("PRAGMA table_info(watches)").all().map(r => r.name);
-  const migrations = [
+  const watchesCols = db.prepare("PRAGMA table_info(watches)").all().map(r => r.name);
+  const watchesMigrations = [
     { col: 'location',      sql: 'ALTER TABLE watches ADD COLUMN location TEXT' },
     { col: 'ad_type',       sql: "ALTER TABLE watches ADD COLUMN ad_type TEXT DEFAULT 'all'" },
     { col: 'exclude_words', sql: 'ALTER TABLE watches ADD COLUMN exclude_words TEXT' },
     { col: 'sort_order',    sql: "ALTER TABLE watches ADD COLUMN sort_order TEXT DEFAULT 'PUBLISHED_DESC'" },
     { col: 'is_car',        sql: 'ALTER TABLE watches ADD COLUMN is_car INTEGER DEFAULT 0' },
   ];
-  for (const { col, sql } of migrations) {
-    if (!existing.includes(col)) {
+  for (const { col, sql } of watchesMigrations) {
+    if (!watchesCols.includes(col)) {
       db.exec(sql);
-      console.log(`[DB] Migration: lade till kolumn "${col}"`);
+      console.log(`[DB] Migration: lade till kolumn "watches.${col}"`);
+    }
+  }
+
+  const seenAdsCols = db.prepare("PRAGMA table_info(seen_ads)").all().map(r => r.name);
+  const seenAdsMigrations = [
+    { col: 'ending_soon_notified', sql: 'ALTER TABLE seen_ads ADD COLUMN ending_soon_notified INTEGER DEFAULT 0' },
+  ];
+  for (const { col, sql } of seenAdsMigrations) {
+    if (!seenAdsCols.includes(col)) {
+      db.exec(sql);
+      console.log(`[DB] Migration: lade till kolumn "seen_ads.${col}"`);
     }
   }
 
@@ -177,6 +188,36 @@ export function markAdSeen(adId, platform, watchId, title, price, url) {
   db.prepare(
     'INSERT OR IGNORE INTO seen_ads (id, platform, watch_id, title, price, url) VALUES (?, ?, ?, ?, ?, ?)'
   ).run(adId, platform, watchId, title ?? null, price ?? null, url ?? null);
+}
+
+/**
+ * Returnerar de listings vars auktion slutar snart och som inte fått ending-soon-notis.
+ * @param {Object[]} listings
+ * @returns {Object[]}
+ */
+export function getEndingSoonUnnotified(listings) {
+  if (listings.length === 0) return [];
+  return listings.filter((listing) => {
+    const row = db.prepare(
+      'SELECT ending_soon_notified FROM seen_ads WHERE id = ? AND platform = ?'
+    ).get(listing.id, listing.platform);
+    return !row || row.ending_soon_notified === 0;
+  });
+}
+
+/**
+ * Markerar listings som notifierade för "slutar snart" (upsert).
+ * @param {Object[]} listings
+ * @param {number} watchId
+ */
+export function markEndingSoonNotified(listings, watchId) {
+  const stmt = db.prepare(
+    'INSERT INTO seen_ads (id, platform, watch_id, title, price, url, ending_soon_notified) VALUES (?, ?, ?, ?, ?, ?, 1) ' +
+    'ON CONFLICT(id, platform) DO UPDATE SET ending_soon_notified = 1'
+  );
+  for (const listing of listings) {
+    stmt.run(listing.id, listing.platform, watchId, listing.title ?? null, listing.price ?? null, listing.url ?? null);
+  }
 }
 
 function serializeSettingValue(value) {

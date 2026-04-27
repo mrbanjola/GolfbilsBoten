@@ -114,7 +114,7 @@ export class BlintoAdapter extends BaseAdapter {
         const auctionStatus = $el.attr('data-auctionstatus');
         const ended = auctionStatus !== '2'; // 2 = aktiv
 
-        if (!title || !url) return;
+        if (ended || !title || !url) return;
 
         results.push({
           id,

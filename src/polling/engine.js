@@ -5,6 +5,7 @@ import { TraderaAdapter } from '../adapters/tradera.js';
 import { KlaravikAdapter } from '../adapters/klaravik.js';
 import { BlintoAdapter } from '../adapters/blinto.js';
 import { filterAndMarkNew, getUnseenListings, markAllSeen } from './dedup.js';
+import { getEndingSoonUnnotified, markEndingSoonNotified } from '../db/database.js';
 import { applyAllFilters } from './filter.js';
 import { filterListingsWithClaude } from '../ai/claude.js';
 
@@ -15,6 +16,17 @@ let lastTraderaPoll = 0;
 let traderaPollIntervalMs = 30 * 60 * 1000;
 let claudeApiKey = null;
 const INITIAL_SCAN_AI_LIMIT = 20;
+const AUCTION_PLATFORMS = new Set(['klaravik', 'blinto']);
+const ENDING_SOON_MS = 60 * 60 * 1000;
+
+function getEndingSoonListings(listings) {
+  const now = Date.now();
+  return listings.filter((l) => {
+    if (!l.auctionEnd) return false;
+    const end = new Date(l.auctionEnd).getTime();
+    return end > now && (end - now) <= ENDING_SOON_MS;
+  });
+}
 
 export function startPollingEngine(config, onNewListing, onInitialScan) {
   notifyCallback = onNewListing;
@@ -161,31 +173,44 @@ export async function runPollCycle({ manual = false } = {}) {
           continue;
         }
 
-        const unseen = getUnseenListings(filtered);
-        const aiFiltered = await applyAiRelevanceFilter({
-          adapter,
-          watch,
-          listings: unseen,
-          aiSettings,
-        });
+        if (AUCTION_PLATFORMS.has(platformName)) {
+          // Auktionsplattform: tysta nykomna auktioner, notifiera bara när < 1h kvar
+          const newUnseen = getUnseenListings(filtered);
+          if (newUnseen.length > 0) markAllSeen(newUnseen, watch.id);
 
-        const approvedIds = new Set(aiFiltered.map((listing) => listing.id));
-        const rejectedUnseen = unseen.filter((listing) => !approvedIds.has(listing.id));
-        if (rejectedUnseen.length > 0) {
-          markAllSeen(rejectedUnseen, watch.id);
-        }
+          const endingSoon = getEndingSoonListings(filtered);
+          const unnotified = getEndingSoonUnnotified(endingSoon);
+          console.log(`[Poller] "${watch.query}" (${platformName}): ${filtered.length} aktiva, ${endingSoon.length} slutar inom 1h, ${unnotified.length} ej notifierade`);
 
-        const newListings = filterAndMarkNew(aiFiltered, watch.id);
-        console.log(`[Poller] "${watch.query}" (${platformName}): ${filtered.length} efter regler, ${unseen.length} osedda, ${aiFiltered.length} efter AI, ${rejectedUnseen.length} avvisade/markerade, ${newListings.length} nya`);
-        totalNew += newListings.length;
+          if (unnotified.length > 0) {
+            const aiFiltered = await applyAiRelevanceFilter({ adapter, watch, listings: unnotified, aiSettings });
+            markEndingSoonNotified(unnotified, watch.id);
+            totalNew += aiFiltered.length;
+            const toNotify = aiFiltered.slice(0, 10);
+            if (notifyCallback && toNotify.length > 0) await notifyCallback(toNotify, watch);
+          }
+        } else {
+          const unseen = getUnseenListings(filtered);
+          const aiFiltered = await applyAiRelevanceFilter({
+            adapter,
+            watch,
+            listings: unseen,
+            aiSettings,
+          });
 
-        const maxPerBatch = 10;
-        const toNotify = newListings.slice(0, maxPerBatch);
-        if (newListings.length > maxPerBatch) {
-          console.log(`[Poller] Begransar till ${maxPerBatch} notiser`);
-        }
-        if (notifyCallback && toNotify.length > 0) {
-          await notifyCallback(toNotify, watch);
+          const approvedIds = new Set(aiFiltered.map((listing) => listing.id));
+          const rejectedUnseen = unseen.filter((listing) => !approvedIds.has(listing.id));
+          if (rejectedUnseen.length > 0) {
+            markAllSeen(rejectedUnseen, watch.id);
+          }
+
+          const newListings = filterAndMarkNew(aiFiltered, watch.id);
+          console.log(`[Poller] "${watch.query}" (${platformName}): ${filtered.length} efter regler, ${unseen.length} osedda, ${aiFiltered.length} efter AI, ${rejectedUnseen.length} avvisade/markerade, ${newListings.length} nya`);
+          totalNew += newListings.length;
+
+          const toNotify = newListings.slice(0, 10);
+          if (newListings.length > 10) console.log(`[Poller] Begransar till 10 notiser`);
+          if (notifyCallback && toNotify.length > 0) await notifyCallback(toNotify, watch);
         }
       } catch (err) {
         console.error(`[Poller] Fel vid poll av "${watch.query}" pa ${platformName}:`, err.message);

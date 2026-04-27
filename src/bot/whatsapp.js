@@ -114,7 +114,13 @@ export async function sendMessage(text, mentions = []) {
     return;
   }
   try {
-    await sock.sendMessage(groupId, { text, mentions });
+    // Lägg till @nummer i texten — krävs för att WhatsApp ska visa och notifiera taggen
+    let finalText = text;
+    if (mentions.length > 0) {
+      const tags = mentions.map((jid) => `@${jid.split('@')[0]}`).join(' ');
+      finalText = `${text}\n${tags}`;
+    }
+    await sock.sendMessage(groupId, { text: finalText, mentions });
   } catch (err) {
     console.error('[Bot] Fel vid skickande av meddelande:', err.message);
   }

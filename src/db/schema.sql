@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS seen_ads (
   price INTEGER,
   url TEXT,
   first_seen_at TEXT DEFAULT (datetime('now')),
+  ending_soon_notified INTEGER DEFAULT 0,
   PRIMARY KEY (id, platform),
   FOREIGN KEY (watch_id) REFERENCES watches(id) ON DELETE CASCADE
 );

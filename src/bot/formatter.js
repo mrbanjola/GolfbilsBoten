@@ -30,7 +30,7 @@ function fmtAuctionEnd(isoOrText) {
 }
 
 /**
- * Formaterar notis för en ny auktion.
+ * Formaterar notis för en auktion som avslutas snart (< 1h).
  * @param {import('../adapters/base.js').ListingResult} listing
  * @param {Object} watch - Bevakningsobjektet
  * @returns {string}
@@ -41,6 +41,12 @@ export function formatAuctionNotice(listing, watch) {
   const bidStr = listing.bidCount ? `${listing.bidCount} bud` : 'Inga bud';
   const endTimeStr = listing.auctionEnd ? fmtAuctionEnd(listing.auctionEnd) : 'N/A';
 
+  let timeLeftStr = '';
+  if (listing.auctionEnd) {
+    const minsLeft = Math.max(0, Math.round((new Date(listing.auctionEnd).getTime() - Date.now()) / 60000));
+    timeLeftStr = ` (${minsLeft} min kvar)`;
+  }
+
   let reserveStr = '';
   if (listing.noReserve) {
     reserveStr = '\n🏷️ Inget reservationspris';
@@ -49,12 +55,12 @@ export function formatAuctionNotice(listing, watch) {
   }
 
   return (
-    `🔨 *Ny auktion!*\n` +
+    `⏳ *Avslutas snart!*\n` +
     `Bevakning: "${watch.query}"\n\n` +
     `*${listing.title}*\n` +
     `${priceStr} · ${bidStr}\n` +
     `📍 ${locationStr}\n` +
-    `⏰ Avslutas: ${endTimeStr}${reserveStr}\n\n` +
+    `⏰ ${endTimeStr}${timeLeftStr}${reserveStr}\n\n` +
     `${listing.url}`
   );
 }
@@ -147,11 +153,19 @@ export function formatWatchSummary(w) {
  * @returns {string}
  */
 export function formatNewListingsBatch(listings, watch) {
-  const header = `🔔 *${listings.length} nya träffar för "${watch.query}":*\n`;
+  const hasAuctions = listings.some((l) => l.auctionEnd);
+  const header = hasAuctions
+    ? `⏳ *${listings.length} auktioner avslutas snart för "${watch.query}":*\n`
+    : `🔔 *${listings.length} nya träffar för "${watch.query}":*\n`;
   const lines = listings.map((l) => {
     const platformLabel = l.platform.charAt(0).toUpperCase() + l.platform.slice(1);
     const price = l.price != null ? fmtPrice(l.price) : 'Pris saknas';
     const loc = l.location ? ` · ${l.location}` : '';
+    if (l.auctionEnd) {
+      const minsLeft = Math.max(0, Math.round((new Date(l.auctionEnd).getTime() - Date.now()) / 60000));
+      const bids = l.bidCount ? ` · ${l.bidCount} bud` : '';
+      return `• *${l.title}*\n  ${price}${bids}${loc} · ${minsLeft} min kvar\n  ${l.url}`;
+    }
     return `• *${l.title}*\n  ${price}${loc} · ${platformLabel}\n  ${l.url}`;
   });
   return header + '\n' + lines.join('\n\n');
