@@ -2,7 +2,7 @@ import { mkdirSync } from 'fs';
 import { config } from './config.js';
 import { initDatabase } from './db/database.js';
 import { startServer } from './server.js';
-import { startWhatsApp, sendMessage, sendImage } from './bot/whatsapp.js';
+import { startWhatsApp, sendMessage } from './bot/whatsapp.js';
 import { handleMessage } from './bot/commands.js';
 import { startPollingEngine, runPollCycle } from './polling/engine.js';
 import { formatNewListing, formatNewListingsBatch, formatInitialScanSummary } from './bot/formatter.js';
@@ -15,6 +15,7 @@ initDatabase(config.dataDir);
 
 // ── Express server (krävs för Render) ─────────────────────────────────────
 startServer(config.port, {
+  dataDir: config.dataDir,
   onManualSearch: () => runPollCycle({ manual: true }),
 });
 
@@ -34,15 +35,11 @@ startPollingEngine(
     traderaAppKey: config.traderaAppKey,
     traderaPollIntervalMinutes: config.traderaPollIntervalMinutes,
     claudeApiKey: config.claudeApiKey,
+    dataDir: config.dataDir,
   },
   async (listings, watch) => {
     if (listings.length === 1) {
-      // Enstaka träff — detaljerad notis med bild
-      const listing = listings[0];
-      await sendMessage(formatNewListing(listing, watch), config.mentionJids);
-      if (listing.imageUrl) {
-        await sendImage(listing.imageUrl, listing.title);
-      }
+      await sendMessage(formatNewListing(listings[0], watch), config.mentionJids);
     } else {
       // Flera träffar — samlat meddelande
       await sendMessage(formatNewListingsBatch(listings, watch), config.mentionJids);

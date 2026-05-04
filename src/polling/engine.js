@@ -4,6 +4,7 @@ import { BlocketAdapter } from '../adapters/blocket.js';
 import { TraderaAdapter } from '../adapters/tradera.js';
 import { KlaravikAdapter } from '../adapters/klaravik.js';
 import { BlintoAdapter } from '../adapters/blinto.js';
+import { FacebookAdapter } from '../adapters/facebook.js';
 import { filterAndMarkNew, getUnseenListings, markAllSeen } from './dedup.js';
 import { getEndingSoonUnnotified, markEndingSoonNotified } from '../db/database.js';
 import { applyAllFilters } from './filter.js';
@@ -14,6 +15,8 @@ let summaryCallback = null;
 const adapters = new Map();
 let lastTraderaPoll = 0;
 let traderaPollIntervalMs = 30 * 60 * 1000;
+let lastFacebookPoll = 0;
+const FACEBOOK_POLL_INTERVAL_MS = 30 * 60 * 1000;
 let claudeApiKey = null;
 const INITIAL_SCAN_AI_LIMIT = 20;
 const AUCTION_PLATFORMS = new Set(['klaravik', 'blinto']);
@@ -37,6 +40,7 @@ export function startPollingEngine(config, onNewListing, onInitialScan) {
   adapters.set('blocket', new BlocketAdapter(config.blocketApiBase, config.pollDelayMs));
   adapters.set('klaravik', new KlaravikAdapter(config.pollDelayMs));
   adapters.set('blinto', new BlintoAdapter(config.pollDelayMs));
+  adapters.set('facebook', new FacebookAdapter(config.claudeApiKey, config.dataDir, config.pollDelayMs));
 
   if (config.traderaAppId && config.traderaAppKey) {
     adapters.set('tradera', new TraderaAdapter(config.traderaAppId, config.traderaAppKey, config.pollDelayMs));
@@ -131,6 +135,7 @@ export async function runPollCycle({ manual = false } = {}) {
   const aiSettings = getAiSettings();
   const now = Date.now();
   const pollTradera = manual || (now - lastTraderaPoll >= traderaPollIntervalMs);
+  const pollFacebook = manual || (now - lastFacebookPoll >= FACEBOOK_POLL_INTERVAL_MS);
 
   console.log(`[Poller] Kor poll-cykel - ${watches.length} aktiva bevakningar${pollTradera ? ' (inkl. Tradera)' : ''}`);
   console.log(`[Claude] Installningar - enabled=${aiSettings.enabled} model=${aiSettings.model} batch=${aiSettings.batch_size} timeout=${aiSettings.timeout_ms} apiKey=${claudeApiKey ? 'yes' : 'no'}`);
@@ -141,6 +146,7 @@ export async function runPollCycle({ manual = false } = {}) {
 
     for (const platformName of platforms) {
       if (platformName === 'tradera' && !pollTradera) continue;
+      if (platformName === 'facebook' && !pollFacebook) continue;
 
       const adapter = adapters.get(platformName);
       if (!adapter) {
@@ -219,6 +225,7 @@ export async function runPollCycle({ manual = false } = {}) {
   }
 
   if (pollTradera) lastTraderaPoll = now;
+  if (pollFacebook) lastFacebookPoll = now;
 
   if (totalNew > 0) {
     console.log(`[Poller] Cykel klar - ${totalNew} nya annonser totalt`);

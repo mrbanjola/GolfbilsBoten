@@ -15,6 +15,7 @@
     "express-basic-auth": "^1.2.1",
     "link-preview-js": "^3.2.0",
     "node-cron": "^3",
+    "playwright": "^1.59.1",
     "qrcode-terminal": "^0.12"
   }
 }
