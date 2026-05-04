@@ -2,6 +2,7 @@ import { BaseAdapter } from './base.js';
 import { chromium } from 'playwright';
 import { existsSync } from 'fs';
 import { join } from 'path';
+import { isAdSeen } from '../db/database.js';
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -81,6 +82,17 @@ export class FacebookAdapter extends BaseAdapter {
 
       console.log(`[Facebook] Hittade ${hrefs.length} unika annons-URLs`);
 
+      // Kolla om alla annons-IDs redan är sedda — hoppa över Claude om så är fallet
+      const unseenHrefs = hrefs.filter((href) => {
+        const m = href.match(/\/marketplace\/item\/(\d+)/);
+        return m ? !isAdSeen(m[1], 'facebook') : true;
+      });
+      if (unseenHrefs.length === 0) {
+        console.log(`[Facebook] Alla ${hrefs.length} annonser redan sedda — hoppar över Claude`);
+        return [];
+      }
+      console.log(`[Facebook] ${unseenHrefs.length} osedda av ${hrefs.length} — anropar Claude`);
+
       // Skärmdump av resultatsidan
       const screenshot = await page.screenshot({ type: 'jpeg', quality: 75 });
 
@@ -96,6 +108,8 @@ export class FacebookAdapter extends BaseAdapter {
         const idMatch = href.match(/\/marketplace\/item\/(\d+)/);
         const id = idMatch?.[1] ?? `fb-${i}`;
 
+        if (isAdSeen(id, 'facebook')) return null;
+
         return {
           id,
           platform: 'facebook',
@@ -107,7 +121,7 @@ export class FacebookAdapter extends BaseAdapter {
           imageUrl: undefined,
           metadata: {},
         };
-      }).filter((l) => l.id && l.url);
+      }).filter((l) => l && l.id && l.url);
 
       return this.filterByPrice(listings, watch.min_price, watch.max_price);
     } catch (err) {
