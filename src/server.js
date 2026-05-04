@@ -3,7 +3,7 @@ import basicAuth from 'express-basic-auth';
 import { existsSync, writeFileSync, statSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import { getWatchesList, addWatch, removeWatch, updateWatch, getAiSettings, updateAiSettings } from './db/database.js';
+import { getWatchesList, addWatch, removeWatch, updateWatch, getAiSettings, updateAiSettings, getStats } from './db/database.js';
 import { LOCATIONS_LIST, CATEGORIES_LIST } from './constants.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -102,6 +102,12 @@ export function startServer(port, callbacks) {
 
   app.get('/api/constants', (_req, res) => {
     res.json({ locations: LOCATIONS_LIST, categories: CATEGORIES_LIST });
+  });
+
+  // ── Statistik ─────────────────────────────────────────────────────────────
+
+  app.get('/api/stats', (_req, res) => {
+    res.json(getStats());
   });
 
   // ── AI-inställningar ──────────────────────────────────────────────────────

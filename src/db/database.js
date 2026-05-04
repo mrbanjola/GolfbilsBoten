@@ -220,6 +220,32 @@ export function markEndingSoonNotified(listings, watchId) {
   }
 }
 
+export function getStats() {
+  const total = db.prepare('SELECT COUNT(*) as n FROM seen_ads').get().n;
+
+  const today = db.prepare(
+    "SELECT COUNT(*) as n FROM seen_ads WHERE date(first_seen_at) = date('now')"
+  ).get().n;
+
+  const perPlatform = db.prepare(
+    'SELECT platform, COUNT(*) as count, ROUND(AVG(price)) as avg_price FROM seen_ads GROUP BY platform ORDER BY count DESC'
+  ).all();
+
+  const perDay = db.prepare(
+    "SELECT date(first_seen_at) as day, COUNT(*) as count FROM seen_ads WHERE first_seen_at >= datetime('now', '-30 days') GROUP BY day ORDER BY day ASC"
+  ).all();
+
+  const perWatch = db.prepare(
+    'SELECT w.query, COUNT(s.id) as count FROM seen_ads s JOIN watches w ON s.watch_id = w.id GROUP BY s.watch_id ORDER BY count DESC LIMIT 10'
+  ).all();
+
+  const recent = db.prepare(
+    'SELECT s.id, s.platform, s.title, s.price, s.url, s.first_seen_at, w.query as watch_query FROM seen_ads s LEFT JOIN watches w ON s.watch_id = w.id ORDER BY s.first_seen_at DESC LIMIT 30'
+  ).all();
+
+  return { total, today, perPlatform, perDay, perWatch, recent };
+}
+
 function serializeSettingValue(value) {
   if (typeof value === 'boolean') return value ? 'true' : 'false';
   return String(value);
