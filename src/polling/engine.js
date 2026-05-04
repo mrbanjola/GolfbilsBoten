@@ -9,7 +9,7 @@ import { BudiAdapter } from '../adapters/budi.js';
 import { JunoraAdapter } from '../adapters/junora.js';
 import { FacebookAdapter } from '../adapters/facebook.js';
 import { filterAndMarkNew, getUnseenListings, markAllSeen } from './dedup.js';
-import { getEndingSoonUnnotified, markEndingSoonNotified } from '../db/database.js';
+import { getEndingSoonUnnotified, markEndingSoonNotified, markNotified } from '../db/database.js';
 import { applyAllFilters } from './filter.js';
 import { filterListingsWithClaude } from '../ai/claude.js';
 
@@ -198,7 +198,10 @@ export async function runPollCycle({ manual = false } = {}) {
             markEndingSoonNotified(unnotified, watch.id);
             totalNew += aiFiltered.length;
             const toNotify = aiFiltered.slice(0, 10);
-            if (notifyCallback && toNotify.length > 0) await notifyCallback(toNotify, watch);
+            if (notifyCallback && toNotify.length > 0) {
+              await notifyCallback(toNotify, watch);
+              markNotified(toNotify);
+            }
           }
         } else {
           const unseen = getUnseenListings(filtered);
@@ -221,7 +224,10 @@ export async function runPollCycle({ manual = false } = {}) {
 
           const toNotify = newListings.slice(0, 10);
           if (newListings.length > 10) console.log(`[Poller] Begransar till 10 notiser`);
-          if (notifyCallback && toNotify.length > 0) await notifyCallback(toNotify, watch);
+          if (notifyCallback && toNotify.length > 0) {
+            await notifyCallback(toNotify, watch);
+            markNotified(toNotify);
+          }
         }
       } catch (err) {
         console.error(`[Poller] Fel vid poll av "${watch.query}" pa ${platformName}:`, err.message);
