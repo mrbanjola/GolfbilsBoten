@@ -594,78 +594,14 @@
 
 <main>
 
-  <!-- Lägg till bevakning -->
-  <div class="card">
-    <div class="card-head">
-      <div class="card-icon ci-green">＋</div>
-      <h2>Lägg till bevakning</h2>
-    </div>
-    <form class="form-grid" onsubmit="addWatch(event)">
-      <div class="field full">
-        <label>Sökterm *</label>
-        <input id="new-query" placeholder="t.ex. Yamaha utombordare" required>
-      </div>
-      <div class="field">
-        <label>Minpris (kr)</label>
-        <input id="new-min" type="number" min="0" placeholder="t.ex. 1 000">
-      </div>
-      <div class="field">
-        <label>Maxpris (kr)</label>
-        <input id="new-max" type="number" min="0" placeholder="t.ex. 50 000">
-      </div>
-      <div class="field">
-        <label>Region</label>
-        <select id="new-location">
-          <option value="">Hela Sverige</option>
-        </select>
-      </div>
-      <div class="field">
-        <label>Annonstyp</label>
-        <select id="new-adtype">
-          <option value="all">Alla</option>
-          <option value="sell">Bara säljes</option>
-          <option value="buy">Bara köpes</option>
-        </select>
-      </div>
-      <div class="field">
-        <label>Plattformar</label>
-        <select id="new-platforms">
-          <option value="blocket">Blocket</option>
-          <option value="tradera">Tradera</option>
-          <option value="klaravik">Klaravik</option>
-          <option value="blinto">Blinto</option>
-          <option value="auctionet">Auctionet</option>
-          <option value="budi">Budi</option>
-          <option value="junora">Junora</option>
-          <option value="facebook">Facebook</option>
-          <option value="blocket,tradera">Blocket + Tradera</option>
-          <option value="blocket,klaravik,blinto,auctionet,budi,junora">Blocket + Auktioner</option>
-          <option value="blocket,tradera,klaravik,blinto,auctionet,budi,junora">Alla utom Facebook</option>
-          <option value="blocket,tradera,klaravik,blinto,auctionet,budi,junora,facebook">Alla</option>
-        </select>
-      </div>
-      <div class="field">
-        <label>Exkludera ord</label>
-        <input id="new-exclude" placeholder="t.ex. köpes, sökes, reservdelar">
-      </div>
-      <div class="field" style="justify-content:flex-end;padding-bottom:2px">
-        <label style="visibility:hidden">_</label>
-        <div class="check-row">
-          <input class="styled" id="new-is-car" type="checkbox">
-          <label class="check-label" for="new-is-car">Blocket bilsökning</label>
-        </div>
-      </div>
-      <div class="full form-actions">
-        <button type="submit" class="btn-primary">Lägg till bevakning</button>
-      </div>
-    </form>
-  </div>
-
   <!-- Aktiva bevakningar -->
   <div class="card">
-    <div class="card-head">
-      <div class="card-icon ci-blue">📋</div>
-      <h2>Aktiva bevakningar</h2>
+    <div class="card-head" style="justify-content:space-between">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="card-icon ci-blue">📋</div>
+        <h2>Aktiva bevakningar</h2>
+      </div>
+      <button class="btn-primary btn-sm" onclick="document.getElementById('add-dialog').showModal()">＋ Lägg till</button>
     </div>
     <div id="watches-container">
       <div class="empty"><div class="empty-icon">⏳</div>Laddar...</div>
@@ -738,6 +674,73 @@
   </div>
 
 </main>
+
+<!-- Lägg till bevakning -->
+<dialog id="add-dialog">
+  <div class="dialog-head">
+    <h3>Lägg till bevakning</h3>
+    <button type="button" class="dialog-close" onclick="document.getElementById('add-dialog').close()">✕</button>
+  </div>
+  <form onsubmit="addWatch(event)">
+    <div class="dialog-body">
+      <div class="field">
+        <label>Sökterm *</label>
+        <input id="new-query" placeholder="t.ex. Yamaha utombordare" required>
+      </div>
+      <div class="field">
+        <label>Minpris (kr)</label>
+        <input id="new-min" type="number" min="0" placeholder="t.ex. 1 000">
+      </div>
+      <div class="field">
+        <label>Maxpris (kr)</label>
+        <input id="new-max" type="number" min="0" placeholder="t.ex. 50 000">
+      </div>
+      <div class="field">
+        <label>Region</label>
+        <select id="new-location">
+          <option value="">Hela Sverige</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Annonstyp</label>
+        <select id="new-adtype">
+          <option value="all">Alla</option>
+          <option value="sell">Bara säljes</option>
+          <option value="buy">Bara köpes</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Plattformar</label>
+        <select id="new-platforms">
+          <option value="blocket">Blocket</option>
+          <option value="tradera">Tradera</option>
+          <option value="klaravik">Klaravik</option>
+          <option value="blinto">Blinto</option>
+          <option value="auctionet">Auctionet</option>
+          <option value="budi">Budi</option>
+          <option value="junora">Junora</option>
+          <option value="facebook">Facebook</option>
+          <option value="blocket,tradera">Blocket + Tradera</option>
+          <option value="blocket,klaravik,blinto,auctionet,budi,junora">Blocket + Auktioner</option>
+          <option value="blocket,tradera,klaravik,blinto,auctionet,budi,junora">Alla utom Facebook</option>
+          <option value="blocket,tradera,klaravik,blinto,auctionet,budi,junora,facebook">Alla</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Exkludera ord</label>
+        <input id="new-exclude" placeholder="t.ex. köpes, sökes, reservdelar">
+      </div>
+      <div class="check-row">
+        <input class="styled" id="new-is-car" type="checkbox">
+        <label class="check-label" for="new-is-car">Blocket bilsökning</label>
+      </div>
+    </div>
+    <div class="dialog-foot">
+      <button type="button" class="btn-secondary" onclick="document.getElementById('add-dialog').close()">Avbryt</button>
+      <button type="submit" class="btn-primary">Lägg till</button>
+    </div>
+  </form>
+</dialog>
 
 <!-- Redigeringsdialog -->
 <dialog id="edit-dialog">
@@ -951,6 +954,7 @@ async function addWatch(event) {
     }),
   });
   event.target.reset();
+  document.getElementById('add-dialog').close();
   await loadWatches();
   toast('Bevakning tillagd.');
 }
