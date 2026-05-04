@@ -35,7 +35,6 @@ startPollingEngine(
     pollIntervalMinutes: config.pollIntervalMinutes,
     traderaAppId: config.traderaAppId,
     traderaAppKey: config.traderaAppKey,
-    traderaPollIntervalMinutes: config.traderaPollIntervalMinutes,
     claudeApiKey: config.claudeApiKey,
     dataDir: config.dataDir,
   },

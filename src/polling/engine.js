@@ -16,10 +16,10 @@ import { filterListingsWithClaude } from '../ai/claude.js';
 let notifyCallback = null;
 let summaryCallback = null;
 const adapters = new Map();
-let lastTraderaPoll = 0;
-let traderaPollIntervalMs = 30 * 60 * 1000;
+let lastAuctionPoll = 0;
+const AUCTION_POLL_INTERVAL_MS = 20 * 60 * 1000;
 let lastFacebookPoll = 0;
-const FACEBOOK_POLL_INTERVAL_MS = 30 * 60 * 1000;
+const FACEBOOK_POLL_INTERVAL_MS = 10 * 60 * 1000;
 let claudeApiKey = null;
 const INITIAL_SCAN_AI_LIMIT = 20;
 const AUCTION_PLATFORMS = new Set(['klaravik', 'blinto', 'auctionet', 'budi', 'junora']);
@@ -37,7 +37,6 @@ function getEndingSoonListings(listings) {
 export function startPollingEngine(config, onNewListing, onInitialScan) {
   notifyCallback = onNewListing;
   summaryCallback = onInitialScan ?? null;
-  traderaPollIntervalMs = config.traderaPollIntervalMinutes * 60 * 1000;
   claudeApiKey = config.claudeApiKey ?? null;
 
   adapters.set('blocket', new BlocketAdapter(config.blocketApiBase, config.pollDelayMs));
@@ -50,13 +49,13 @@ export function startPollingEngine(config, onNewListing, onInitialScan) {
 
   if (config.traderaAppId && config.traderaAppKey) {
     adapters.set('tradera', new TraderaAdapter(config.traderaAppId, config.traderaAppKey, config.pollDelayMs));
-    console.log(`[Poller] Tradera aktiverad - pollar var ${config.traderaPollIntervalMinutes}:e minut`);
+    console.log('[Poller] Tradera aktiverad');
   } else {
     console.log('[Poller] Tradera ej konfigurerad (saknar TRADERA_APP_ID/KEY)');
   }
 
   const cronExpr = `*/${config.pollIntervalMinutes} * * * *`;
-  console.log(`[Poller] Startar - Blocket var ${config.pollIntervalMinutes}:e minut`);
+  console.log(`[Poller] Startar - Blocket var ${config.pollIntervalMinutes} min, auktioner var 20 min, Facebook var 10 min`);
 
   cron.schedule(cronExpr, () => {
     runPollCycle({ manual: false }).catch((err) => console.error('[Poller] Ovantat fel i poll-cykel:', err));
@@ -140,10 +139,10 @@ export async function runPollCycle({ manual = false } = {}) {
 
   const aiSettings = getAiSettings();
   const now = Date.now();
-  const pollTradera = manual || (now - lastTraderaPoll >= traderaPollIntervalMs);
+  const pollAuctions = manual || (now - lastAuctionPoll >= AUCTION_POLL_INTERVAL_MS);
   const pollFacebook = manual || (now - lastFacebookPoll >= FACEBOOK_POLL_INTERVAL_MS);
 
-  console.log(`[Poller] Kor poll-cykel - ${watches.length} aktiva bevakningar${pollTradera ? ' (inkl. Tradera)' : ''}`);
+  console.log(`[Poller] Kor poll-cykel - ${watches.length} aktiva bevakningar${pollAuctions ? ' (inkl. auktioner)' : ''}${pollFacebook ? ' (inkl. Facebook)' : ''}`);
   console.log(`[Claude] Installningar - enabled=${aiSettings.enabled} model=${aiSettings.model} batch=${aiSettings.batch_size} timeout=${aiSettings.timeout_ms} apiKey=${claudeApiKey ? 'yes' : 'no'}`);
   let totalNew = 0;
 
@@ -151,8 +150,8 @@ export async function runPollCycle({ manual = false } = {}) {
     const platforms = watch.platforms.split(',').map((platform) => platform.trim());
 
     for (const platformName of platforms) {
-      if (platformName === 'tradera' && !pollTradera) continue;
       if (platformName === 'facebook' && !pollFacebook) continue;
+      if (platformName !== 'blocket' && platformName !== 'facebook' && !pollAuctions) continue;
 
       const adapter = adapters.get(platformName);
       if (!adapter) {
@@ -230,7 +229,7 @@ export async function runPollCycle({ manual = false } = {}) {
     }
   }
 
-  if (pollTradera) lastTraderaPoll = now;
+  if (pollAuctions) lastAuctionPoll = now;
   if (pollFacebook) lastFacebookPoll = now;
 
   if (totalNew > 0) {
