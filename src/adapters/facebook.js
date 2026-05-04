@@ -99,7 +99,7 @@ export class FacebookAdapter extends BaseAdapter {
         return {
           id,
           platform: 'facebook',
-          title: item.title ?? '',
+          title: item.title || `Facebook-annons ${id}`,
           price: typeof item.price === 'number' ? item.price : null,
           currency: 'SEK',
           location: item.location ?? '',
@@ -107,7 +107,7 @@ export class FacebookAdapter extends BaseAdapter {
           imageUrl: undefined,
           metadata: {},
         };
-      }).filter((l) => l.id && l.url && l.title);
+      }).filter((l) => l.id && l.url);
 
       return this.filterByPrice(listings, watch.min_price, watch.max_price);
     } catch (err) {
