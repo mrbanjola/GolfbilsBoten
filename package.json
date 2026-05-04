@@ -5,8 +5,7 @@
   "type": "module",
   "main": "src/index.js",
   "scripts": {
-    "start": "node src/index.js",
-    "postinstall": "playwright install chromium"
+    "start": "playwright install chromium && node src/index.js"
   },
   "dependencies": {
     "@whiskeysockets/baileys": "latest",
