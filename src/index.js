@@ -16,6 +16,8 @@ initDatabase(config.dataDir);
 // ── Express server (krävs för Render) ─────────────────────────────────────
 startServer(config.port, {
   dataDir: config.dataDir,
+  adminUser: config.adminUser,
+  adminPass: config.adminPass,
   onManualSearch: () => runPollCycle({ manual: true }),
 });
 

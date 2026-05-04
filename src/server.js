@@ -1,4 +1,5 @@
 import express from 'express';
+import basicAuth from 'express-basic-auth';
 import { existsSync, writeFileSync, statSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
@@ -34,11 +35,25 @@ export function startServer(port, callbacks) {
   const app = express();
   app.use(express.json());
 
-  // ── Hälsa ────────────────────────────────────────────────────────────────
+  // ── Hälsa (publik) ────────────────────────────────────────────────────────
 
   app.get('/health', (_req, res) => {
     res.json({ status: 'ok', uptime: Math.floor(process.uptime()), activeWatches: getWatchesList().length });
   });
+
+  // ── Auth (skyddar /admin och /api) ───────────────────────────────────────
+
+  if (callbacks.adminPass) {
+    const auth = basicAuth({
+      users: { [callbacks.adminUser]: callbacks.adminPass },
+      challenge: true,
+      realm: 'Begagnat Monitor',
+    });
+    app.use('/admin', auth);
+    app.use('/api', auth);
+  } else {
+    console.warn('[Server] ADMIN_PASS ej satt — admin-panel är oskyddad!');
+  }
 
   // ── Bevakningar ───────────────────────────────────────────────────────────
 
