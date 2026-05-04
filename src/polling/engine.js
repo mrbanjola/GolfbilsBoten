@@ -4,6 +4,7 @@ import { BlocketAdapter } from '../adapters/blocket.js';
 import { TraderaAdapter } from '../adapters/tradera.js';
 import { KlaravikAdapter } from '../adapters/klaravik.js';
 import { BlintoAdapter } from '../adapters/blinto.js';
+import { AuctionetAdapter } from '../adapters/auctionet.js';
 import { FacebookAdapter } from '../adapters/facebook.js';
 import { filterAndMarkNew, getUnseenListings, markAllSeen } from './dedup.js';
 import { getEndingSoonUnnotified, markEndingSoonNotified } from '../db/database.js';
@@ -19,7 +20,7 @@ let lastFacebookPoll = 0;
 const FACEBOOK_POLL_INTERVAL_MS = 30 * 60 * 1000;
 let claudeApiKey = null;
 const INITIAL_SCAN_AI_LIMIT = 20;
-const AUCTION_PLATFORMS = new Set(['klaravik', 'blinto']);
+const AUCTION_PLATFORMS = new Set(['klaravik', 'blinto', 'auctionet']);
 const ENDING_SOON_MS = 60 * 60 * 1000;
 
 function getEndingSoonListings(listings) {
@@ -40,6 +41,7 @@ export function startPollingEngine(config, onNewListing, onInitialScan) {
   adapters.set('blocket', new BlocketAdapter(config.blocketApiBase, config.pollDelayMs));
   adapters.set('klaravik', new KlaravikAdapter(config.pollDelayMs));
   adapters.set('blinto', new BlintoAdapter(config.pollDelayMs));
+  adapters.set('auctionet', new AuctionetAdapter(config.pollDelayMs));
   adapters.set('facebook', new FacebookAdapter(config.claudeApiKey, config.dataDir, config.pollDelayMs));
 
   if (config.traderaAppId && config.traderaAppKey) {
