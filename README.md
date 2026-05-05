@@ -89,7 +89,7 @@ All settings are read from environment variables (`.env` file).
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `WHATSAPP_GROUP_ID` | *(required)* | Target group JID, e.g. `120363427495534345@g.us` |
-| `MENTION_JIDS` | *(none)* | Comma-separated numbers to @mention, e.g. `46761912642,46701234567` |
+| `MENTION_JIDS` | *(none)* | Comma-separated numbers to @mention, e.g. `46701234567,46709876543` |
 
 To find your group JID, start the bot, send a message to the group, and look for the JID printed in the console.
 
