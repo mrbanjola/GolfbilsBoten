@@ -63,6 +63,10 @@ export function startServer(port, callbacks) {
   const app = express();
   app.use(express.json({ limit: '10mb' }));
 
+  // ── Statiska admin-tillgångar (CSS/JS, inget känsligt) ───────────────────
+
+  app.use(express.static(join(__dirname, 'public')));
+
   // ── Hälsa (publik) ────────────────────────────────────────────────────────
 
   app.get('/health', (_req, res) => {
