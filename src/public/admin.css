@@ -948,6 +948,22 @@
   .bic-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .bic-price { color: var(--text-4); font-size: .75rem; white-space: nowrap; }
 
+  /* ── Paused watch card ── */
+  .watch-card.paused { opacity: .55; border-color: rgba(0,0,0,0.06); background: rgba(0,0,0,0.02); }
+  .chip-paused { background: rgba(0,0,0,0.06); border-color: rgba(0,0,0,0.1); color: var(--text-3); }
+
+  /* ── Portfolio analytics ── */
+  .analytics-wrap { margin-top: 18px; padding-top: 16px; border-top: 1px solid rgba(0,0,0,0.07); }
+  .analytics-section {}
+  .analytics-title { font-size: .72rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--text-3); margin-bottom: 8px; }
+  .analytics-scroll { overflow-x: auto; }
+  .analytics-table { width: 100%; border-collapse: collapse; font-size: .82rem; white-space: nowrap; }
+  .analytics-table th { text-align: left; padding: 5px 10px; color: var(--text-3); font-size: .7rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid rgba(0,0,0,0.08); }
+  .analytics-table td { padding: 6px 10px; border-bottom: 1px solid rgba(0,0,0,0.04); }
+  .analytics-table tr:last-child td { border-bottom: none; }
+  .profit-pos { color: var(--primary); font-weight: 600; }
+  .profit-neg { color: var(--danger); font-weight: 600; }
+
   /* ── Responsive ── */
   @media (max-width: 600px) {
     header { padding: 0 14px; }

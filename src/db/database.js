@@ -57,6 +57,7 @@ function runMigrations() {
     { col: 'exclude_words', sql: 'ALTER TABLE watches ADD COLUMN exclude_words TEXT' },
     { col: 'sort_order',    sql: "ALTER TABLE watches ADD COLUMN sort_order TEXT DEFAULT 'PUBLISHED_DESC'" },
     { col: 'is_car',        sql: 'ALTER TABLE watches ADD COLUMN is_car INTEGER DEFAULT 0' },
+    { col: 'paused',        sql: 'ALTER TABLE watches ADD COLUMN paused INTEGER DEFAULT 0' },
   ];
   for (const { col, sql } of watchesMigrations) {
     if (!watchesCols.includes(col)) {
@@ -128,7 +129,7 @@ function seedDefaultSettings() {
  * @returns {Object[]}
  */
 export function getActiveWatches() {
-  return db.prepare('SELECT * FROM watches WHERE active = 1').all();
+  return db.prepare('SELECT * FROM watches WHERE active = 1 AND (paused IS NULL OR paused = 0)').all();
 }
 
 /**
@@ -182,7 +183,7 @@ export function getWatchByIndex(index) {
  * @param {string|number|null} value
  */
 export function updateWatch(id, field, value) {
-  const allowed = ['location', 'ad_type', 'exclude_words', 'sort_order', 'max_price', 'min_price', 'platforms', 'is_car'];
+  const allowed = ['query', 'location', 'ad_type', 'exclude_words', 'sort_order', 'max_price', 'min_price', 'platforms', 'is_car', 'paused'];
   if (!allowed.includes(field)) throw new Error(`Otillåtet fält: ${field}`);
   db.prepare(`UPDATE watches SET ${field} = ? WHERE id = ?`).run(value, id);
 }
@@ -409,6 +410,43 @@ export function updatePortfolioItem(id, updates = {}) {
   if (parts.length === 0) return;
   values.push(id);
   db.prepare(`UPDATE portfolio SET ${parts.join(', ')} WHERE id = ?`).run(...values);
+}
+
+export function getPortfolioAnalytics() {
+  const byCategory = db.prepare(`
+    SELECT
+      COALESCE(p.category, '_none') AS category,
+      COUNT(*) AS items,
+      SUM(CASE WHEN p.sold_at IS NOT NULL THEN 1 ELSE 0 END) AS sold,
+      SUM(p.purchase_price + COALESCE(c.total, 0)) AS invested,
+      SUM(COALESCE(p.sold_price, 0)) AS revenue,
+      ROUND(AVG(CASE WHEN p.sold_at IS NOT NULL
+        THEN julianday(p.sold_at) - julianday(p.purchased_at) END)) AS avg_days
+    FROM portfolio p
+    LEFT JOIN (SELECT portfolio_id, SUM(amount) AS total FROM portfolio_costs GROUP BY portfolio_id) c
+      ON c.portfolio_id = p.id
+    WHERE p.bundle_id IS NULL
+    GROUP BY COALESCE(p.category, '_none')
+    ORDER BY (SUM(COALESCE(p.sold_price, 0)) - SUM(p.purchase_price) - SUM(COALESCE(c.total, 0))) DESC
+  `).all();
+
+  const byTag = db.prepare(`
+    SELECT
+      t.data_name, t.label,
+      COUNT(DISTINCT p.id) AS items,
+      SUM(CASE WHEN p.sold_at IS NOT NULL THEN 1 ELSE 0 END) AS sold,
+      SUM(p.purchase_price + COALESCE(c.total, 0)) AS invested,
+      SUM(COALESCE(p.sold_price, 0)) AS revenue
+    FROM portfolio_tags pt
+    JOIN tags t ON t.data_name = pt.tag
+    JOIN portfolio p ON p.id = pt.portfolio_id
+    LEFT JOIN (SELECT portfolio_id, SUM(amount) AS total FROM portfolio_costs GROUP BY portfolio_id) c
+      ON c.portfolio_id = p.id
+    GROUP BY t.data_name, t.label
+    ORDER BY (SUM(COALESCE(p.sold_price, 0)) - SUM(p.purchase_price) - SUM(COALESCE(c.total, 0))) DESC
+  `).all();
+
+  return { byCategory, byTag };
 }
 
 // ── Tags ───────────────────────────────────────────────────────────────────

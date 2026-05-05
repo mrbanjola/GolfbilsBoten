@@ -3,7 +3,7 @@ import basicAuth from 'express-basic-auth';
 import { existsSync, writeFileSync, statSync, mkdirSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import { getWatchesList, addWatch, removeWatch, updateWatch, getAiSettings, updateAiSettings, getStats, addPurchase, markSold, getPortfolio, updatePortfolioImageUrl, updatePortfolioItem, replacePortfolioCosts, createBundle, getBundles, markBundleSold, updateBundle, dissolveBundle, getTags, addTag, deleteTag, setPortfolioTags } from './db/database.js';
+import { getWatchesList, addWatch, removeWatch, updateWatch, getAiSettings, updateAiSettings, getStats, addPurchase, markSold, getPortfolio, updatePortfolioImageUrl, updatePortfolioItem, replacePortfolioCosts, createBundle, getBundles, markBundleSold, updateBundle, dissolveBundle, getTags, addTag, deleteTag, setPortfolioTags, getPortfolioAnalytics } from './db/database.js';
 import { LOCATIONS_LIST, CATEGORIES_LIST, PORTFOLIO_CATEGORIES } from './constants.js';
 import { fetchListingPageDetails } from './adapters/detail-fetch.js';
 
@@ -110,7 +110,7 @@ export function startServer(port, callbacks) {
 
   app.patch('/api/watches/:id', (req, res) => {
     const id = parseInt(req.params.id, 10);
-    const allowed = ['location', 'ad_type', 'exclude_words', 'sort_order', 'max_price', 'min_price', 'platforms', 'is_car'];
+    const allowed = ['query', 'location', 'ad_type', 'exclude_words', 'sort_order', 'max_price', 'min_price', 'platforms', 'is_car', 'paused'];
     const updates = Object.entries(req.body).filter(([key]) => allowed.includes(key));
     if (updates.length === 0) return res.status(400).json({ error: 'Inga giltiga fält' });
     for (const [field, value] of updates) {
@@ -157,6 +157,10 @@ export function startServer(port, callbacks) {
   });
 
   // ── Portfolio ─────────────────────────────────────────────────────────────
+
+  app.get('/api/portfolio/analytics', (_req, res) => {
+    res.json(getPortfolioAnalytics());
+  });
 
   app.get('/api/portfolio', (_req, res) => {
     res.json(getPortfolio());

@@ -87,6 +87,8 @@ async function loadWatches() {
 function watchCard(watch) {
   const chips = [];
 
+  if (watch.paused) chips.push('<span class="chip chip-paused">⏸ Pausad</span>');
+
   if (watch.min_price || watch.max_price) {
     const parts = [];
     if (watch.min_price) parts.push(watch.min_price.toLocaleString('sv') + ' kr');
@@ -106,17 +108,29 @@ function watchCard(watch) {
   if (watch.exclude_words) chips.push(`<span class="chip chip-red">✕ ${watch.exclude_words}</span>`);
 
   const carBadge = watch.is_car ? '<span class="chip chip-blue">🚗 Bil</span>' : '';
+  const pauseLabel = watch.paused ? '▶ Återuppta' : '⏸ Pausa';
 
-  return `<div class="watch-card">
+  return `<div class="watch-card${watch.paused ? ' paused' : ''}">
     <div class="watch-info">
       <div class="watch-title">${watch.query}${carBadge ? ' ' + carBadge : ''}</div>
       <div class="watch-chips">${chips.join('')}</div>
     </div>
     <div class="watch-actions">
+      <button class="btn-secondary btn-sm" onclick="togglePause(${watch.id}, ${watch.paused || 0})">${pauseLabel}</button>
       <button class="btn-secondary btn-sm" onclick='openEdit(${JSON.stringify(watch)})'>Ändra</button>
       <button class="btn-danger btn-sm" onclick="deleteWatch(${watch.id}, '${watch.query.replace(/'/g, "\\'")}')">Ta bort</button>
     </div>
   </div>`;
+}
+
+async function togglePause(id, paused) {
+  await api(`/api/watches/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ paused: paused ? 0 : 1 }),
+  });
+  await loadWatches();
+  toast(paused ? 'Bevakning återupptagen.' : 'Bevakning pausad.');
 }
 
 async function addWatch(event) {
@@ -176,6 +190,7 @@ async function saveEdit(event) {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
+      query: document.getElementById('edit-query').value.trim() || undefined,
       max_price: parseInt(document.getElementById('edit-max').value, 10) || null,
       min_price: parseInt(document.getElementById('edit-min').value, 10) || null,
       location: document.getElementById('edit-location').value || null,
@@ -546,9 +561,10 @@ function totalInvested(item) {
 }
 
 async function loadPortfolio() {
-  const [items, bundles] = await Promise.all([
+  const [items, bundles, analytics] = await Promise.all([
     api('/api/portfolio').catch(() => []),
     api('/api/portfolio/bundles').catch(() => []),
+    api('/api/portfolio/analytics').catch(() => null),
   ]);
   await loadTags();
   currentPortfolioItems = items;
@@ -583,6 +599,8 @@ async function loadPortfolio() {
   }
   document.getElementById('port-held-count').textContent = heldStandalone.length + heldBundles.length;
 
+  if (analytics) renderPortfolioAnalytics(analytics);
+
   const createBtn = document.getElementById('create-bundle-btn');
   if (createBtn) createBtn.style.display = heldStandalone.length >= 2 ? '' : 'none';
 
@@ -597,6 +615,73 @@ async function loadPortfolio() {
     ...soldBundles.map(bundleCard),
     ...soldStandalone.map(portfolioCard),
   ].join('');
+}
+
+function renderPortfolioAnalytics({ byCategory, byTag }) {
+  const el = document.getElementById('portfolio-analytics');
+  if (!el) return;
+
+  const hasSoldCategory = byCategory.some((r) => r.sold > 0);
+  const hasSoldTag = byTag.some((r) => r.sold > 0);
+  if (!hasSoldCategory && !hasSoldTag) { el.innerHTML = ''; return; }
+
+  function profitCell(invested, revenue) {
+    if (!revenue) return '<td>–</td>';
+    const p = revenue - invested;
+    const cls = p > 0 ? 'profit-pos' : p < 0 ? 'profit-neg' : '';
+    const sign = p >= 0 ? '+' : '';
+    return `<td class="${cls}">${sign}${p.toLocaleString('sv')} kr</td>`;
+  }
+  function marginCell(invested, revenue) {
+    if (!revenue || !invested) return '<td>–</td>';
+    const m = Math.round(((revenue - invested) / invested) * 100);
+    const cls = m > 0 ? 'profit-pos' : m < 0 ? 'profit-neg' : '';
+    return `<td class="${cls}">${m > 0 ? '+' : ''}${m}%</td>`;
+  }
+
+  let html = '<div class="analytics-wrap">';
+
+  if (hasSoldCategory) {
+    const catLabel = (val) => portfolioCategories.find((c) => c.value === val)?.label ?? 'Okategoriserad';
+    html += `<div class="analytics-section">
+      <div class="analytics-title">Vinst per kategori</div>
+      <div class="analytics-scroll">
+      <table class="analytics-table">
+        <thead><tr><th>Kategori</th><th>Köp</th><th>Sålda</th><th>Investerat</th><th>Intäkt</th><th>Vinst</th><th>Marginal</th><th>Snitt tid</th></tr></thead>
+        <tbody>${byCategory.filter((r) => r.sold > 0).map((r) => `<tr>
+          <td>${catLabel(r.category)}</td>
+          <td>${r.items}</td>
+          <td>${r.sold}</td>
+          <td>${r.invested.toLocaleString('sv')} kr</td>
+          <td>${r.revenue.toLocaleString('sv')} kr</td>
+          ${profitCell(r.invested, r.revenue)}
+          ${marginCell(r.invested, r.revenue)}
+          <td>${r.avg_days != null ? r.avg_days + ' dgr' : '–'}</td>
+        </tr>`).join('')}</tbody>
+      </table>
+      </div></div>`;
+  }
+
+  if (hasSoldTag) {
+    html += `<div class="analytics-section" style="margin-top:14px">
+      <div class="analytics-title">Vinst per konditionstagg</div>
+      <div class="analytics-scroll">
+      <table class="analytics-table">
+        <thead><tr><th>Tagg</th><th>Köp</th><th>Sålda</th><th>Investerat</th><th>Intäkt</th><th>Vinst</th></tr></thead>
+        <tbody>${byTag.filter((r) => r.sold > 0).map((r) => `<tr>
+          <td>${r.label}</td>
+          <td>${r.items}</td>
+          <td>${r.sold}</td>
+          <td>${r.invested.toLocaleString('sv')} kr</td>
+          <td>${r.revenue.toLocaleString('sv')} kr</td>
+          ${profitCell(r.invested, r.revenue)}
+        </tr>`).join('')}</tbody>
+      </table>
+      </div></div>`;
+  }
+
+  html += '</div>';
+  el.innerHTML = html;
 }
 
 function portfolioCard(item) {
