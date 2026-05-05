@@ -54,13 +54,14 @@ export function formatAuctionNotice(listing, watch) {
     reserveStr = '\n✅ Reservationspris uppnått';
   }
 
+  const tagsStr = listing.tags?.length ? `\n🏷️ ${listing.tags.join(' · ')}` : '';
   return (
     `⏳ *Avslutas snart!*\n` +
     `Bevakning: "${watch.query}"\n\n` +
     `*${listing.title}*\n` +
     `${priceStr} · ${bidStr}\n` +
     `📍 ${locationStr}\n` +
-    `⏰ ${endTimeStr}${timeLeftStr}${reserveStr}\n\n` +
+    `⏰ ${endTimeStr}${timeLeftStr}${reserveStr}${tagsStr}\n\n` +
     `${listing.url}`
   );
 }
@@ -82,12 +83,14 @@ export function formatNewListing(listing, watch) {
   const priceStr = listing.price != null ? fmtPrice(listing.price) : 'Pris saknas';
   const locationStr = listing.location || 'Okänd plats';
 
+  const tagsStr = listing.tags?.length ? `🏷️ ${listing.tags.join(' · ')}\n` : '';
   return (
     `🔔 *Ny träff!*\n` +
     `Bevakning: "${watch.query}"\n\n` +
     `*${listing.title}*\n` +
     `${priceStr} · ${locationStr}\n` +
-    `${platformLabel}\n\n` +
+    `${platformLabel}\n` +
+    `${tagsStr}\n` +
     `${listing.url}`
   );
 }
@@ -161,12 +164,13 @@ export function formatNewListingsBatch(listings, watch) {
     const platformLabel = l.platform.charAt(0).toUpperCase() + l.platform.slice(1);
     const price = l.price != null ? fmtPrice(l.price) : 'Pris saknas';
     const loc = l.location ? ` · ${l.location}` : '';
+    const tags = l.tags?.length ? `\n  🏷️ ${l.tags.join(' · ')}` : '';
     if (l.auctionEnd) {
       const minsLeft = Math.max(0, Math.round((new Date(l.auctionEnd).getTime() - Date.now()) / 60000));
       const bids = l.bidCount ? ` · ${l.bidCount} bud` : '';
-      return `• *${l.title}*\n  ${price}${bids}${loc} · ${minsLeft} min kvar\n  ${l.url}`;
+      return `• *${l.title}*\n  ${price}${bids}${loc} · ${minsLeft} min kvar${tags}\n  ${l.url}`;
     }
-    return `• *${l.title}*\n  ${price}${loc} · ${platformLabel}\n  ${l.url}`;
+    return `• *${l.title}*\n  ${price}${loc} · ${platformLabel}${tags}\n  ${l.url}`;
   });
   return header + '\n' + lines.join('\n\n');
 }

@@ -52,6 +52,33 @@ CREATE TABLE IF NOT EXISTS portfolio_costs (
   FOREIGN KEY (portfolio_id) REFERENCES portfolio(id) ON DELETE CASCADE
 );
 
+-- Portfolio-paket: grupperar flera portfolio-objekt till ett säljpaket
+CREATE TABLE IF NOT EXISTS portfolio_bundles (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  sold_price INTEGER,
+  sold_at TEXT,
+  notes TEXT,
+  created_at TEXT DEFAULT (datetime('now'))
+);
+
+-- Tagg-registry: konditionstaggar för annonser och portfolio
+CREATE TABLE IF NOT EXISTS tags (
+  data_name  TEXT PRIMARY KEY,
+  label      TEXT NOT NULL,
+  color      TEXT,
+  created_at TEXT DEFAULT (datetime('now'))
+);
+
+-- Taggar kopplade till portfolio-poster
+CREATE TABLE IF NOT EXISTS portfolio_tags (
+  portfolio_id INTEGER NOT NULL,
+  tag          TEXT NOT NULL,
+  source       TEXT NOT NULL DEFAULT 'manual',
+  PRIMARY KEY (portfolio_id, tag),
+  FOREIGN KEY (portfolio_id) REFERENCES portfolio(id) ON DELETE CASCADE
+);
+
 -- App-inställningar (AI prompt, modell, flaggor, etc.)
 CREATE TABLE IF NOT EXISTS settings (
   key TEXT PRIMARY KEY,

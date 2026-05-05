@@ -3,8 +3,8 @@ import basicAuth from 'express-basic-auth';
 import { existsSync, writeFileSync, statSync, mkdirSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import { getWatchesList, addWatch, removeWatch, updateWatch, getAiSettings, updateAiSettings, getStats, addPurchase, markSold, getPortfolio, updatePortfolioImageUrl, updatePortfolioItem, replacePortfolioCosts } from './db/database.js';
-import { LOCATIONS_LIST, CATEGORIES_LIST } from './constants.js';
+import { getWatchesList, addWatch, removeWatch, updateWatch, getAiSettings, updateAiSettings, getStats, addPurchase, markSold, getPortfolio, updatePortfolioImageUrl, updatePortfolioItem, replacePortfolioCosts, createBundle, getBundles, markBundleSold, updateBundle, dissolveBundle, getTags, addTag, deleteTag, setPortfolioTags } from './db/database.js';
+import { LOCATIONS_LIST, CATEGORIES_LIST, PORTFOLIO_CATEGORIES } from './constants.js';
 import { fetchListingPageDetails } from './adapters/detail-fetch.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -129,7 +129,7 @@ export function startServer(port, callbacks) {
   // ── Konstanter ────────────────────────────────────────────────────────────
 
   app.get('/api/constants', (_req, res) => {
-    res.json({ locations: LOCATIONS_LIST, categories: CATEGORIES_LIST });
+    res.json({ locations: LOCATIONS_LIST, categories: CATEGORIES_LIST, portfolioCategories: PORTFOLIO_CATEGORIES });
   });
 
   // ── Statistik ─────────────────────────────────────────────────────────────
@@ -210,7 +210,7 @@ export function startServer(port, callbacks) {
 
   app.patch('/api/portfolio/:id', async (req, res) => {
     const id = parseInt(req.params.id, 10);
-    const { purchase_price, sold_price, notes, image_data, costs } = req.body;
+    const { purchase_price, sold_price, notes, image_data, costs, tags, category } = req.body;
     const updates = {};
     if ('purchase_price' in req.body) {
       const p = Number(purchase_price);
@@ -234,10 +234,72 @@ export function startServer(port, callbacks) {
         console.warn(`[Portfolio] Kunde inte spara redigerad bild för #${id}: ${err.message}`);
       }
     }
+    if ('category' in req.body) updates.category = category || null;
     updatePortfolioItem(id, updates);
     if (Array.isArray(costs)) {
       replacePortfolioCosts(id, costs.filter((c) => c.description && Number(c.amount) > 0));
     }
+    if (Array.isArray(tags)) {
+      setPortfolioTags(id, tags);
+    }
+    res.json({ ok: true });
+  });
+
+  // ── Taggar ────────────────────────────────────────────────────────────────
+
+  app.get('/api/tags', (_req, res) => {
+    res.json(getTags());
+  });
+
+  app.post('/api/tags', (req, res) => {
+    const { data_name, label, color } = req.body;
+    if (!data_name?.trim() || !label?.trim()) return res.status(400).json({ error: 'data_name och label krävs' });
+    if (!/^[a-z][a-z0-9_]*$/.test(data_name.trim())) return res.status(400).json({ error: 'data_name får bara innehålla a-z, 0-9 och _' });
+    addTag(data_name.trim(), label.trim(), color?.trim() || null);
+    res.json({ ok: true });
+  });
+
+  app.delete('/api/tags/:data_name', (req, res) => {
+    deleteTag(req.params.data_name);
+    res.json({ ok: true });
+  });
+
+  // ── Portfolio bundles ─────────────────────────────────────────────────────
+
+  app.get('/api/portfolio/bundles', (_req, res) => {
+    res.json(getBundles());
+  });
+
+  app.post('/api/portfolio/bundles', (req, res) => {
+    const { name, item_ids } = req.body;
+    if (!name?.trim()) return res.status(400).json({ error: 'name krävs' });
+    if (!Array.isArray(item_ids) || item_ids.length < 2) return res.status(400).json({ error: 'Minst 2 objekt krävs' });
+    const id = createBundle(name.trim(), item_ids);
+    res.json({ id });
+  });
+
+  app.patch('/api/portfolio/bundles/:id', (req, res) => {
+    const id = parseInt(req.params.id, 10);
+    const updates = {};
+    if ('name' in req.body) updates.name = String(req.body.name ?? '').trim() || null;
+    if ('notes' in req.body) updates.notes = req.body.notes || null;
+    if (updates.name === null) return res.status(400).json({ error: 'name får inte vara tomt' });
+    updateBundle(id, updates);
+    res.json({ ok: true });
+  });
+
+  app.patch('/api/portfolio/bundles/:id/sold', (req, res) => {
+    const id = parseInt(req.params.id, 10);
+    const price = Number(req.body.sold_price);
+    if (!Number.isInteger(price) || price < 0) return res.status(400).json({ error: 'sold_price måste vara ett positivt heltal' });
+    const ok = markBundleSold(id, price);
+    if (!ok) return res.status(404).json({ error: 'Paket hittades inte' });
+    res.json({ ok: true });
+  });
+
+  app.delete('/api/portfolio/bundles/:id', (req, res) => {
+    const id = parseInt(req.params.id, 10);
+    dissolveBundle(id);
     res.json({ ok: true });
   });
 

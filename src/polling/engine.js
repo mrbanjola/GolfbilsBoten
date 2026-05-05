@@ -1,5 +1,5 @@
 import cron from 'node-cron';
-import { getActiveWatches, getAiSettings, markInitialScanDone } from '../db/database.js';
+import { getActiveWatches, getAiSettings, markInitialScanDone, getTags } from '../db/database.js';
 import { BlocketAdapter } from '../adapters/blocket.js';
 import { TraderaAdapter } from '../adapters/tradera.js';
 import { KlaravikAdapter } from '../adapters/klaravik.js';
@@ -85,6 +85,8 @@ async function applyAiRelevanceFilter({ adapter, watch, listings, aiSettings }) 
     return listings;
   }
 
+  const tags = getTags();
+  const tagLabelMap = new Map(tags.map((t) => [t.data_name, t.label]));
   const batchSize = Math.max(1, aiSettings.batch_size || listings.length);
   const approved = [];
 
@@ -98,6 +100,7 @@ async function applyAiRelevanceFilter({ adapter, watch, listings, aiSettings }) 
         aiSettings,
         watch,
         listings: enriched,
+        tags,
       });
 
       if (!result.skipped) {
@@ -109,9 +112,13 @@ async function applyAiRelevanceFilter({ adapter, watch, listings, aiSettings }) 
           const decision = decisionMap.get(listing.id);
           const priceLabel = listing.price != null ? `${listing.price} ${listing.currency ?? 'SEK'}` : 'okant pris';
           if (decision?.keep) {
+            if (decision.tags?.length) {
+              listing.tags = decision.tags.map((dn) => tagLabelMap.get(dn)).filter(Boolean);
+            }
             console.log(
               `[Claude][Keep] "${watch.query}" - ${listing.id} - ${listing.title} - ${priceLabel} - ${decision.reasonCode}` +
-              `${decision.note ? ` - ${decision.note}` : ''}`
+              `${decision.note ? ` - ${decision.note}` : ''}` +
+              `${decision.tags?.length ? ` - [${decision.tags.join(', ')}]` : ''}`
             );
             continue;
           }

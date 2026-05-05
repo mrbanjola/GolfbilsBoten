@@ -864,6 +864,86 @@
   .cost-add-row input:last-of-type { width: 90px; }
   .cost-empty { font-size: .78rem; color: var(--text-4); font-style: italic; margin-bottom: 4px; }
 
+  /* ── Tags ── */
+  .tag-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+  .tag-chip {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: .72rem; font-weight: 600; padding: 3px 9px; border-radius: 20px;
+    background: rgba(99,102,241,0.1); border: 1px solid rgba(99,102,241,0.25); color: #4f46e5;
+  }
+  .tag-chip-del {
+    font-size: .75rem; line-height: 1; cursor: pointer; opacity: .55; border: none; background: none;
+    padding: 0; color: inherit; transition: opacity .12s;
+  }
+  .tag-chip-del:hover { opacity: 1; }
+
+  .tag-checkbox-list { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-top: 4px; }
+  .tag-checkbox-label {
+    display: flex; align-items: center; gap: 7px; padding: 5px 8px; font-size: .82rem;
+    border-radius: var(--radius-xs); cursor: pointer;
+    border: 1px solid rgba(0,0,0,0.06); background: rgba(255,255,255,0.5);
+    transition: background .12s;
+  }
+  .tag-checkbox-label:hover { background: rgba(99,102,241,0.06); }
+  .tag-checkbox-label input { margin: 0; flex-shrink: 0; }
+
+  .pcard-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+  .pcard-tag {
+    font-size: .68rem; font-weight: 600; padding: 2px 7px; border-radius: 20px;
+    background: rgba(99,102,241,0.08); border: 1px solid rgba(99,102,241,0.2); color: #4f46e5;
+  }
+  .pcard-category {
+    font-size: .68rem; font-weight: 600; padding: 2px 7px; border-radius: 20px;
+    background: rgba(15,118,110,0.08); border: 1px solid rgba(15,118,110,0.2); color: #0f766e;
+  }
+
+  /* ── Bundle cards ── */
+  .bundle-card { border-color: rgba(99,102,241,0.35); background: rgba(238,240,255,0.45); }
+  .bundle-card .pcard-footer { background: rgba(99,102,241,0.04); border-top-color: rgba(99,102,241,0.15); }
+
+  .bundle-header { align-items: center; padding-bottom: 8px; border-bottom: 1px solid rgba(99,102,241,0.15); }
+  .bundle-icon { font-size: 1.4rem; flex-shrink: 0; width: 40px; text-align: center; }
+
+  .bundle-items { display: grid; gap: 1px; padding: 0 16px; }
+  .bundle-item-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 0; border-bottom: 1px solid rgba(0,0,0,0.04); font-size: .82rem;
+  }
+  .bundle-item-row:last-child { border-bottom: none; }
+  .bundle-item-thumb { width: 40px; height: 40px; border-radius: var(--radius-xs); object-fit: cover; flex-shrink: 0; background: rgba(0,0,0,0.06); }
+  .bundle-item-thumb-ph { width: 40px; height: 40px; border-radius: var(--radius-xs); flex-shrink: 0; background: rgba(0,0,0,0.06); display: flex; align-items: center; justify-content: center; color: var(--text-4); }
+  .bundle-item-thumb-ph svg { width: 18px; height: 18px; }
+  .bundle-item-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-2); font-weight: 500; }
+  .bundle-item-price { white-space: nowrap; color: var(--text-3); font-size: .75rem; }
+
+  .bundle-total-row {
+    display: flex; justify-content: space-between; align-items: baseline;
+    padding: 8px 16px; font-size: .82rem;
+    border-top: 1px solid rgba(99,102,241,0.12);
+    background: rgba(99,102,241,0.05);
+  }
+  .bundle-total-row span:first-child { font-weight: 600; color: var(--text-2); }
+  .bundle-total-row span:last-child { font-weight: 700; color: var(--text); }
+
+  .btn-dissolve {
+    font-size: .7rem; font-weight: 600; padding: 2px 9px; border-radius: 20px;
+    border: 1px solid rgba(220,38,38,0.25); background: rgba(220,38,38,0.06); color: var(--danger);
+    cursor: pointer; transition: all .15s; white-space: nowrap;
+  }
+  .btn-dissolve:hover { background: rgba(220,38,38,0.14); }
+
+  .bundle-items-checklist { display: grid; gap: 4px; margin-top: 4px; }
+  .bundle-item-check {
+    display: flex; align-items: center; gap: 10px; padding: 8px 10px;
+    border-radius: var(--radius-xs); cursor: pointer; font-size: .85rem;
+    border: 1px solid rgba(0,0,0,0.06); background: rgba(255,255,255,0.5);
+    transition: background .12s;
+  }
+  .bundle-item-check:hover { background: rgba(99,102,241,0.06); }
+  .bundle-item-check input { margin: 0; flex-shrink: 0; }
+  .bundle-item-check span:nth-child(2) { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .bundle-item-check span:last-child { color: var(--text-4); font-size: .75rem; white-space: nowrap; }
+
   /* ── Responsive ── */
   @media (max-width: 600px) {
     header { padding: 0 14px; }
@@ -1113,11 +1193,28 @@
     </form>
   </div>
 
+  <!-- Tagghantering -->
+  <div class="card">
+    <div class="card-head">
+      <div class="card-icon" style="background:rgba(99,102,241,0.12);color:#4f46e5">🏷️</div>
+      <h2>Taggar</h2>
+    </div>
+    <div class="tag-chips" id="tag-registry-chips">
+      <span style="font-size:.78rem;color:var(--text-4)">Laddar...</span>
+    </div>
+    <form onsubmit="addTagToRegistry(event)" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px">
+      <input id="tag-new-name" type="text" placeholder="data_name (t.ex. rust)" style="width:130px;font-size:.82rem" pattern="[a-z][a-z0-9_]*" title="Bara a-z, 0-9 och _">
+      <input id="tag-new-label" type="text" placeholder="Etikett (t.ex. Rost)" style="flex:1;min-width:120px;font-size:.82rem" required>
+      <button type="submit" class="btn-primary btn-sm">+ Lägg till</button>
+    </form>
+  </div>
+
   <!-- Affärer -->
   <div class="card">
     <div class="card-head">
       <div class="card-icon ci-amber">🛒</div>
       <h2>Affärer</h2>
+      <button class="btn-secondary btn-sm" id="create-bundle-btn" onclick="openCreateBundle()" style="display:none;margin-left:auto">📦 Skapa paket</button>
     </div>
     <div class="portfolio-list" id="portfolio-list">
       <div class="empty"><div class="empty-icon">⏳</div>Laddar...</div>
@@ -1296,6 +1393,30 @@
   </form>
 </dialog>
 
+<!-- Skapa paket -->
+<dialog id="bundle-create-dialog">
+  <div class="dialog-head">
+    <h3>Skapa paket</h3>
+    <button type="button" class="dialog-close" onclick="document.getElementById('bundle-create-dialog').close()">✕</button>
+  </div>
+  <form onsubmit="submitCreateBundle(event)">
+    <div class="dialog-body">
+      <div class="field">
+        <label>Paketnamn *</label>
+        <input id="bundle-name" type="text" placeholder="T.ex. Gummibåtspaket" required>
+      </div>
+      <div class="field">
+        <label>Välj objekt att paketera <span style="color:var(--text-4);font-weight:400">(minst 2)</span></label>
+        <div id="bundle-items-list" class="bundle-items-checklist"></div>
+      </div>
+    </div>
+    <div class="dialog-foot">
+      <button type="button" class="btn-secondary" onclick="document.getElementById('bundle-create-dialog').close()">Avbryt</button>
+      <button type="submit" class="btn-primary">Skapa paket</button>
+    </div>
+  </form>
+</dialog>
+
 <!-- Markera som såld -->
 <dialog id="sell-dialog">
   <div class="dialog-head">
@@ -1345,6 +1466,16 @@
         </div>
       </div>
       <div class="field">
+        <label>Kategori</label>
+        <select id="pedit-category">
+          <option value="">– Välj kategori –</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Taggar</label>
+        <div id="pedit-tags-list" class="tag-checkbox-list"></div>
+      </div>
+      <div class="field">
         <label>Kommentar</label>
         <textarea id="pedit-notes" placeholder="T.ex. skick, vad som gjordes, fynd-info..." style="min-height:56px"></textarea>
       </div>
@@ -1379,12 +1510,17 @@ async function api(url, options = {}) {
   return data;
 }
 
+let portfolioCategories = [];
+
 async function init() {
   const constants = await api('/api/constants');
   locations = constants.locations;
+  portfolioCategories = constants.portfolioCategories ?? [];
   const opts = locations.map((l) => `<option value="${l.value}">${l.label}</option>`).join('');
   document.getElementById('new-location').insertAdjacentHTML('beforeend', opts);
   document.getElementById('edit-location').insertAdjacentHTML('beforeend', opts);
+  const catOpts = portfolioCategories.map((c) => `<option value="${c.value}">${c.label}</option>`).join('');
+  document.getElementById('pedit-category').insertAdjacentHTML('beforeend', catOpts);
   await Promise.all([loadWatches(), loadAiSettings(), loadFacebookStatus()]);
 }
 
@@ -1798,9 +1934,45 @@ function getPlatformFromUrlClient(url) {
   return null;
 }
 
+// ── Tag registry ──
+let allTags = [];
+
+async function loadTags() {
+  allTags = await api('/api/tags').catch(() => []);
+  const chips = document.getElementById('tag-registry-chips');
+  if (!chips) return;
+  if (allTags.length === 0) {
+    chips.innerHTML = '<span style="font-size:.78rem;color:var(--text-4)">Inga taggar ännu.</span>';
+    return;
+  }
+  chips.innerHTML = allTags.map((t) =>
+    `<span class="tag-chip">${escAttr(t.label)}<button type="button" class="tag-chip-del" onclick="deleteTagFromRegistry('${escAttr(t.data_name)}')" title="Ta bort">×</button></span>`
+  ).join('');
+}
+
+async function addTagToRegistry(event) {
+  event.preventDefault();
+  const data_name = document.getElementById('tag-new-name').value.trim();
+  const label = document.getElementById('tag-new-label').value.trim();
+  if (!data_name || !label) return;
+  await api('/api/tags', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ data_name, label }) });
+  document.getElementById('tag-new-name').value = '';
+  document.getElementById('tag-new-label').value = '';
+  toast('Tagg tillagd.');
+  await loadTags();
+}
+
+async function deleteTagFromRegistry(dataName) {
+  if (!confirm('Ta bort taggen från registret?')) return;
+  await api(`/api/tags/${encodeURIComponent(dataName)}`, { method: 'DELETE' });
+  toast('Tagg borttagen.');
+  await loadTags();
+}
+
 // ── Portfolio ──
 let pendingPurchaseData = null;
-let pendingSellId = null;
+let sellTarget = null; // { type: 'item'|'bundle', id: number }
+let currentPortfolioItems = [];
 
 function escAttr(s) {
   return (s ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;');
@@ -1839,8 +2011,16 @@ async function confirmPurchase(event) {
 
 function openSellDialog(btn, event) {
   event.stopPropagation();
-  pendingSellId = parseInt(btn.dataset.id, 10);
+  sellTarget = { type: 'item', id: parseInt(btn.dataset.id, 10) };
   document.getElementById('sell-item-title').textContent = btn.dataset.title || 'Okänd annons';
+  document.getElementById('sell-price').value = '';
+  document.getElementById('sell-dialog').showModal();
+}
+
+function openSellBundle(btn, event) {
+  event.stopPropagation();
+  sellTarget = { type: 'bundle', id: parseInt(btn.dataset.id, 10) };
+  document.getElementById('sell-item-title').textContent = btn.dataset.title || 'Paket';
   document.getElementById('sell-price').value = '';
   document.getElementById('sell-dialog').showModal();
 }
@@ -1849,13 +2029,16 @@ async function confirmSell(event) {
   event.preventDefault();
   const price = parseInt(document.getElementById('sell-price').value, 10);
   if (!price || price < 0) return toast('Ange ett giltigt pris.');
-  await api(`/api/portfolio/${pendingSellId}/sold`, {
+  const url = sellTarget.type === 'bundle'
+    ? `/api/portfolio/bundles/${sellTarget.id}/sold`
+    : `/api/portfolio/${sellTarget.id}/sold`;
+  await api(url, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ sold_price: price }),
   });
   document.getElementById('sell-dialog').close();
-  pendingSellId = null;
+  sellTarget = null;
   toast('Markerat som såld!');
   await loadPortfolio();
 }
@@ -1866,18 +2049,34 @@ function totalInvested(item) {
 }
 
 async function loadPortfolio() {
-  const items = await api('/api/portfolio').catch(() => []);
-  const held = items.filter((i) => !i.sold_at);
-  const sold = items.filter((i) => i.sold_at);
+  const [items, bundles] = await Promise.all([
+    api('/api/portfolio').catch(() => []),
+    api('/api/portfolio/bundles').catch(() => []),
+  ]);
+  await loadTags();
+  currentPortfolioItems = items;
+
+  const bundledIds = new Set(bundles.flatMap((b) => b.items.map((i) => i.id)));
+  const standalone = items.filter((i) => !bundledIds.has(i.id));
+
+  const heldStandalone = standalone.filter((i) => !i.sold_at);
+  const soldStandalone = standalone.filter((i) => i.sold_at);
+  const heldBundles = bundles.filter((b) => !b.sold_at);
+  const soldBundles = bundles.filter((b) => b.sold_at);
 
   const allInvested = items.reduce((s, i) => s + totalInvested(i), 0);
-  const totalRevenue = sold.reduce((s, i) => s + (i.sold_price ?? 0), 0);
-  const profit = sold.reduce((s, i) => s + (i.sold_price ?? 0) - totalInvested(i), 0);
+  let totalRevenue = soldStandalone.reduce((s, i) => s + (i.sold_price ?? 0), 0);
+  let profit = soldStandalone.reduce((s, i) => s + (i.sold_price ?? 0) - totalInvested(i), 0);
+  for (const b of soldBundles) {
+    totalRevenue += b.sold_price ?? 0;
+    profit += (b.sold_price ?? 0) - b.items.reduce((s, i) => s + totalInvested(i), 0);
+  }
+  const hasSold = soldStandalone.length > 0 || soldBundles.length > 0;
 
   document.getElementById('port-invested').textContent = allInvested ? allInvested.toLocaleString('sv') + ' kr' : '–';
   document.getElementById('port-revenue').textContent = totalRevenue ? totalRevenue.toLocaleString('sv') + ' kr' : '–';
   const profitEl = document.getElementById('port-profit');
-  if (sold.length) {
+  if (hasSold) {
     const sign = profit >= 0 ? '+' : '';
     profitEl.textContent = sign + profit.toLocaleString('sv') + ' kr';
     profitEl.style.color = profit > 0 ? 'var(--primary)' : profit < 0 ? 'var(--danger)' : '';
@@ -1885,14 +2084,22 @@ async function loadPortfolio() {
     profitEl.textContent = '–';
     profitEl.style.color = '';
   }
-  document.getElementById('port-held-count').textContent = held.length;
+  document.getElementById('port-held-count').textContent = heldStandalone.length + heldBundles.length;
+
+  const createBtn = document.getElementById('create-bundle-btn');
+  if (createBtn) createBtn.style.display = heldStandalone.length >= 2 ? '' : 'none';
 
   const list = document.getElementById('portfolio-list');
-  if (items.length === 0) {
+  if (items.length === 0 && bundles.length === 0) {
     list.innerHTML = '<div class="empty"><div class="empty-icon">🛒</div>Inga köp registrerade ännu.<br>Klicka "Köpt" på en annons i Statistik-fliken.</div>';
     return;
   }
-  list.innerHTML = [...held, ...sold].map(portfolioCard).join('');
+  list.innerHTML = [
+    ...heldBundles.map(bundleCard),
+    ...heldStandalone.map(portfolioCard),
+    ...soldBundles.map(bundleCard),
+    ...soldStandalone.map(portfolioCard),
+  ].join('');
 }
 
 function portfolioCard(item) {
@@ -1945,6 +2152,10 @@ function portfolioCard(item) {
           ${showInvested ? `<hr class="pcard-divider"><div class="pcard-row pcard-invested"><span class="pcard-row-label">Totalt investerat</span><span class="pcard-row-value">${invested.toLocaleString('sv')} kr</span></div>` : ''}
         </div>
         ${item.notes ? `<div class="pcard-notes">${escAttr(item.notes)}</div>` : ''}
+        ${(item.category || (item.tags ?? []).length) ? `<div class="pcard-tags">
+          ${item.category ? `<span class="pcard-category">${escAttr(portfolioCategories.find(c=>c.value===item.category)?.label ?? item.category)}</span>` : ''}
+          ${(item.tags ?? []).map(dn => `<span class="pcard-tag">${escAttr(allTags.find(t=>t.data_name===dn)?.label ?? dn)}</span>`).join('')}
+        </div>` : ''}
       </div>
     </div>
     <div class="pcard-footer">
@@ -1954,6 +2165,100 @@ function portfolioCard(item) {
       </div>
     </div>
   </div>`;
+}
+
+function bundleCard(bundle) {
+  const bundleInvested = bundle.items.reduce((s, i) => s + totalInvested(i), 0);
+
+  const itemRows = bundle.items.map((item) => {
+    const thumb = item.image_url
+      ? `<img class="bundle-item-thumb" src="${escAttr(item.image_url)}" alt="" loading="lazy" onerror="this.outerHTML='<div class=\\'bundle-item-thumb-ph\\'><svg viewBox=\\'0 0 24 24\\' fill=\\'none\\' stroke=\\'currentColor\\' stroke-width=\\'1.5\\'><rect x=\\'3\\' y=\\'3\\' width=\\'18\\' height=\\'18\\' rx=\\'3\\'/><circle cx=\\'8.5\\' cy=\\'8.5\\' r=\\'1.5\\'/><path d=\\'M21 15l-5-5L5 21\\'/></svg></div>'">`
+      : `<div class="bundle-item-thumb-ph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg></div>`;
+    const invested = totalInvested(item);
+    const costsNote = item.costs?.length ? ` +${item.costs.length} kostnad${item.costs.length > 1 ? 'er' : ''}` : '';
+    return `<div class="bundle-item-row">
+      ${thumb}
+      <span class="bundle-item-title" title="${escAttr(item.title)}">${escAttr(item.title ?? 'Okänd annons')}</span>
+      <span class="bundle-item-price">${invested.toLocaleString('sv')} kr${costsNote}</span>
+    </div>`;
+  }).join('');
+
+  let footerHtml;
+  if (bundle.sold_at) {
+    const p = (bundle.sold_price ?? 0) - bundleInvested;
+    const sign = p >= 0 ? '+' : '';
+    const cls = p >= 0 ? 'profit-positive' : 'profit-negative';
+    footerHtml = `
+      <div class="pcard-result">
+        <span class="profit-badge ${cls}">${sign}${p.toLocaleString('sv')} kr</span>
+        <span class="profit-sold-price">Såld: ${(bundle.sold_price ?? 0).toLocaleString('sv')} kr</span>
+      </div>
+      <div class="pcard-actions">
+        <button class="btn-dissolve" onclick="openDissolveBundle(${bundle.id})">Upplös paket</button>
+      </div>`;
+  } else {
+    footerHtml = `
+      <div class="pcard-result">
+        <span class="profit-badge profit-held">I lager</span>
+        <button class="btn-sell" data-id="${bundle.id}" data-title="${escAttr(bundle.name)}" onclick="openSellBundle(this, event)">Markera såld</button>
+      </div>
+      <div class="pcard-actions">
+        <button class="btn-dissolve" onclick="openDissolveBundle(${bundle.id})">Upplös paket</button>
+      </div>`;
+  }
+
+  return `<div class="portfolio-card bundle-card">
+    <div class="pcard-top bundle-header">
+      <span class="bundle-icon">📦</span>
+      <div class="pcard-body">
+        <div class="pcard-header">
+          <span class="pcard-title">${escAttr(bundle.name)}</span>
+          <span class="chip chip-slate" style="flex-shrink:0;font-size:.68rem">paket · ${bundle.items.length} obj</span>
+        </div>
+      </div>
+    </div>
+    <div class="bundle-items">${itemRows}</div>
+    <div class="bundle-total-row">
+      <span>Totalt investerat</span>
+      <span>${bundleInvested.toLocaleString('sv')} kr</span>
+    </div>
+    <div class="pcard-footer">${footerHtml}</div>
+  </div>`;
+}
+
+function openCreateBundle() {
+  const unbundledUnsold = currentPortfolioItems.filter((i) => !i.bundle_id && !i.sold_at);
+  document.getElementById('bundle-items-list').innerHTML = unbundledUnsold.map((i) =>
+    `<label class="bundle-item-check">
+      <input type="checkbox" name="bundle-item" value="${i.id}">
+      <span>${escAttr(i.title ?? 'Okänd annons')}</span>
+      <span>${totalInvested(i).toLocaleString('sv')} kr</span>
+    </label>`
+  ).join('');
+  document.getElementById('bundle-name').value = '';
+  document.getElementById('bundle-create-dialog').showModal();
+}
+
+async function submitCreateBundle(event) {
+  event.preventDefault();
+  const name = document.getElementById('bundle-name').value.trim();
+  const checked = [...document.querySelectorAll('[name="bundle-item"]:checked')].map((el) => parseInt(el.value, 10));
+  if (checked.length < 2) return toast('Välj minst 2 objekt.');
+  await api('/api/portfolio/bundles', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, item_ids: checked }),
+  });
+  document.getElementById('bundle-create-dialog').close();
+  toast('Paket skapat!');
+  await loadPortfolio();
+}
+
+async function openDissolveBundle(bundleId) {
+  if (!confirm('Upplösa paketet? Objekten återgår till enskilda kort.')) return;
+  await api(`/api/portfolio/bundles/${bundleId}`, { method: 'DELETE' });
+  toast('Paket upplöst.');
+  await loadPortfolio();
 }
 
 // ── Portfolio edit ──
@@ -1998,10 +2303,18 @@ function openPortfolioEdit(btn) {
   document.getElementById('pedit-purchase-price').value = item.purchase_price ?? '';
   document.getElementById('pedit-sold-price').value = item.sold_price ?? '';
   document.getElementById('pedit-notes').value = item.notes ?? '';
+  document.getElementById('pedit-category').value = item.category ?? '';
   document.getElementById('pedit-cost-desc').value = '';
   document.getElementById('pedit-cost-amount').value = '';
   document.getElementById('pedit-image-file').value = '';
   renderEditCosts();
+  const itemTags = new Set(item.tags ?? []);
+  document.getElementById('pedit-tags-list').innerHTML = allTags.map((t) =>
+    `<label class="tag-checkbox-label">
+      <input type="checkbox" name="pedit-tag" value="${escAttr(t.data_name)}"${itemTags.has(t.data_name) ? ' checked' : ''}>
+      <span>${escAttr(t.label)}</span>
+    </label>`
+  ).join('') || '<span style="font-size:.78rem;color:var(--text-4)">Inga taggar i registret.</span>';
   const wrap = document.getElementById('pedit-thumb-wrap');
   wrap.innerHTML = item.image_url
     ? `<img class="recent-thumb" src="${escAttr(item.image_url)}" alt="" loading="lazy" onerror="this.replaceWith(thumbPlaceholder())">`
@@ -2025,10 +2338,13 @@ async function submitPortfolioEdit(event) {
   event.preventDefault();
   const id = document.getElementById('pedit-id').value;
   const soldVal = document.getElementById('pedit-sold-price').value.trim();
+  const selectedTags = [...document.querySelectorAll('[name="pedit-tag"]:checked')].map((el) => el.value);
   const body = {
     purchase_price: parseInt(document.getElementById('pedit-purchase-price').value, 10),
     sold_price: soldVal ? parseInt(soldVal, 10) : null,
     notes: document.getElementById('pedit-notes').value.trim() || null,
+    category: document.getElementById('pedit-category').value || null,
+    tags: selectedTags,
     costs: editCosts,
   };
   if (editImageData) body.image_data = editImageData;

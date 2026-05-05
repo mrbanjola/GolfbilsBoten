@@ -80,7 +80,9 @@ function runMigrations() {
 
   const portfolioCols = db.prepare("PRAGMA table_info(portfolio)").all().map(r => r.name);
   const portfolioMigrations = [
-    { col: 'notes', sql: 'ALTER TABLE portfolio ADD COLUMN notes TEXT' },
+    { col: 'notes',      sql: 'ALTER TABLE portfolio ADD COLUMN notes TEXT' },
+    { col: 'bundle_id',  sql: 'ALTER TABLE portfolio ADD COLUMN bundle_id INTEGER REFERENCES portfolio_bundles(id)' },
+    { col: 'category',   sql: 'ALTER TABLE portfolio ADD COLUMN category TEXT' },
   ];
   for (const { col, sql } of portfolioMigrations) {
     if (!portfolioCols.includes(col)) {
@@ -90,6 +92,24 @@ function runMigrations() {
   }
 
   seedDefaultSettings();
+  seedDefaultTags();
+}
+
+const DEFAULT_TAGS = [
+  { data_name: 'bad_batteries',    label: 'Dåliga batterier' },
+  { data_name: 'no_start',         label: 'Startar inte' },
+  { data_name: 'untested',         label: 'Ej testad' },
+  { data_name: 'broken_propeller', label: 'Trasig propeller' },
+  { data_name: 'missing_parts',    label: 'Saknas delar' },
+  { data_name: 'flat_tire',        label: 'Punktering' },
+  { data_name: 'as_is',            label: 'Säljs i befintligt skick' },
+];
+
+function seedDefaultTags() {
+  const insert = db.prepare('INSERT OR IGNORE INTO tags (data_name, label) VALUES (?, ?)');
+  for (const { data_name, label } of DEFAULT_TAGS) {
+    insert.run(data_name, label);
+  }
 }
 
 function seedDefaultSettings() {
@@ -286,14 +306,67 @@ export function markSold(id, soldPrice) {
 }
 
 export function getPortfolio() {
-  const items = db.prepare('SELECT * FROM portfolio ORDER BY purchased_at DESC').all();
+  const items = db.prepare(
+    'SELECT p.*, pb.name as bundle_name FROM portfolio p LEFT JOIN portfolio_bundles pb ON p.bundle_id = pb.id ORDER BY p.purchased_at DESC'
+  ).all();
   const allCosts = db.prepare('SELECT * FROM portfolio_costs ORDER BY created_at ASC').all();
+  const allTags = db.prepare('SELECT * FROM portfolio_tags').all();
   const costMap = new Map();
   for (const c of allCosts) {
     if (!costMap.has(c.portfolio_id)) costMap.set(c.portfolio_id, []);
     costMap.get(c.portfolio_id).push(c);
   }
-  return items.map((item) => ({ ...item, costs: costMap.get(item.id) ?? [] }));
+  const tagMap = new Map();
+  for (const t of allTags) {
+    if (!tagMap.has(t.portfolio_id)) tagMap.set(t.portfolio_id, []);
+    tagMap.get(t.portfolio_id).push(t.tag);
+  }
+  return items.map((item) => ({ ...item, costs: costMap.get(item.id) ?? [], tags: tagMap.get(item.id) ?? [] }));
+}
+
+// ── Portfolio bundles ──────────────────────────────────────────────────────
+
+export function createBundle(name, itemIds) {
+  const result = db.prepare(
+    "INSERT INTO portfolio_bundles (name) VALUES (?)"
+  ).run(name);
+  const bundleId = Number(result.lastInsertRowid);
+  const stmt = db.prepare('UPDATE portfolio SET bundle_id = ? WHERE id = ? AND sold_at IS NULL AND bundle_id IS NULL');
+  for (const id of itemIds) {
+    stmt.run(bundleId, id);
+  }
+  return bundleId;
+}
+
+export function getBundles() {
+  const bundles = db.prepare('SELECT * FROM portfolio_bundles ORDER BY created_at DESC').all();
+  const allItems = getPortfolio();
+  return bundles.map((b) => ({
+    ...b,
+    items: allItems.filter((i) => i.bundle_id === b.id),
+  }));
+}
+
+export function markBundleSold(id, soldPrice) {
+  const result = db.prepare(
+    "UPDATE portfolio_bundles SET sold_price = ?, sold_at = datetime('now') WHERE id = ?"
+  ).run(soldPrice, id);
+  return result.changes > 0;
+}
+
+export function updateBundle(id, updates = {}) {
+  const parts = [];
+  const values = [];
+  if ('name' in updates) { parts.push('name = ?'); values.push(updates.name); }
+  if ('notes' in updates) { parts.push('notes = ?'); values.push(updates.notes ?? null); }
+  if (parts.length === 0) return;
+  values.push(id);
+  db.prepare(`UPDATE portfolio_bundles SET ${parts.join(', ')} WHERE id = ?`).run(...values);
+}
+
+export function dissolveBundle(id) {
+  db.prepare('UPDATE portfolio SET bundle_id = NULL WHERE bundle_id = ?').run(id);
+  db.prepare('DELETE FROM portfolio_bundles WHERE id = ?').run(id);
 }
 
 export function replacePortfolioCosts(portfolioId, costs) {
@@ -329,9 +402,35 @@ export function updatePortfolioItem(id, updates = {}) {
     parts.push('notes = ?');
     values.push(updates.notes ?? null);
   }
+  if ('category' in updates) {
+    parts.push('category = ?');
+    values.push(updates.category ?? null);
+  }
   if (parts.length === 0) return;
   values.push(id);
   db.prepare(`UPDATE portfolio SET ${parts.join(', ')} WHERE id = ?`).run(...values);
+}
+
+// ── Tags ───────────────────────────────────────────────────────────────────
+
+export function getTags() {
+  return db.prepare('SELECT * FROM tags ORDER BY label ASC').all();
+}
+
+export function addTag(dataName, label, color = null) {
+  db.prepare('INSERT OR REPLACE INTO tags (data_name, label, color) VALUES (?, ?, ?)').run(dataName, label, color);
+}
+
+export function deleteTag(dataName) {
+  db.prepare('DELETE FROM tags WHERE data_name = ?').run(dataName);
+}
+
+export function setPortfolioTags(portfolioId, tagDataNames) {
+  db.prepare('DELETE FROM portfolio_tags WHERE portfolio_id = ?').run(portfolioId);
+  const insert = db.prepare("INSERT INTO portfolio_tags (portfolio_id, tag, source) VALUES (?, ?, 'manual')");
+  for (const tag of tagDataNames) {
+    insert.run(portfolioId, tag);
+  }
 }
 
 function serializeSettingValue(value) {

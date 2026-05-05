@@ -90,6 +90,14 @@ export const CATEGORIES_LIST = [
   { label: 'Kläder',              value: 'klader' },
 ];
 
+export const PORTFOLIO_CATEGORIES = [
+  { value: 'car',           label: 'Bil' },
+  { value: 'boat',          label: 'Båt' },
+  { value: 'golf_cart',     label: 'Golfbil' },
+  { value: 'excavator',     label: 'Grävmaskin' },
+  { value: 'other_machine', label: 'Övriga maskiner' },
+];
+
 /**
  * Slår upp en plats från fri text (case-insensitive).
  * @param {string} input

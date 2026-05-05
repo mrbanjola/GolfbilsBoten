@@ -9,7 +9,7 @@ function buildSystemPrompt(aiSettings) {
   return `${aiSettings.system_prompt.trim()}${globalRules}
 
 Return JSON only with this exact shape:
-{"results":[{"id":"string","keep":true,"reason_code":"short_code","note":"optional short note"}]}
+{"results":[{"id":"string","keep":true,"reason_code":"short_code","note":"optional short note","tags":["data_name"]}]}
 
 Rules:
 - Use only the provided listing data.
@@ -17,7 +17,8 @@ Rules:
 - Title and short description are the strongest signals. Use long detail text only as supporting evidence.
 - If the query is broad, prefer inclusion unless the listing is clearly the wrong type of thing.
 - If the query is specific, require a closer match.
-- The note field is optional and should stay short.`;
+- The note field is optional and should stay short.
+- tags: array of applicable data_name strings from the tag_registry provided in the payload. Only use data_names from the registry. Use [] if none clearly apply. Be conservative — only tag when the condition is evident from title or description.`;
 }
 
 function classifyQueryScope(query) {
@@ -35,10 +36,11 @@ function classifyQueryScope(query) {
   return 'broad';
 }
 
-function buildUserPayload(watch, listings) {
+function buildUserPayload(watch, listings, tags = []) {
   const queryScope = classifyQueryScope(watch.query);
 
   return {
+    tag_registry: tags.map((t) => ({ data_name: t.data_name, label: t.label })),
     watch: {
       id: watch.id,
       query: watch.query,
@@ -103,6 +105,7 @@ function parseClaudeResponse(text, expectedIds) {
     keep: Boolean(item.keep),
     reasonCode: typeof item.reason_code === 'string' ? item.reason_code : 'unknown',
     note: typeof item.note === 'string' ? item.note : '',
+    tags: Array.isArray(item.tags) ? item.tags.filter((t) => typeof t === 'string') : [],
   }));
 
   const decisionIds = new Set(decisions.map((item) => item.id));
@@ -115,7 +118,7 @@ function parseClaudeResponse(text, expectedIds) {
   return decisions;
 }
 
-export async function filterListingsWithClaude({ apiKey, aiSettings, watch, listings }) {
+export async function filterListingsWithClaude({ apiKey, aiSettings, watch, listings, tags = [] }) {
   if (!aiSettings.enabled || listings.length === 0) {
     return { approved: listings, decisions: [], skipped: true };
   }
@@ -139,12 +142,12 @@ export async function filterListingsWithClaude({ apiKey, aiSettings, watch, list
       },
       body: JSON.stringify({
         model: aiSettings.model,
-        max_tokens: 1200,
+        max_tokens: 2048,
         system: buildSystemPrompt(aiSettings),
         messages: [
           {
             role: 'user',
-            content: JSON.stringify(buildUserPayload(watch, listings)),
+            content: JSON.stringify(buildUserPayload(watch, listings, tags)),
           },
         ],
       }),
