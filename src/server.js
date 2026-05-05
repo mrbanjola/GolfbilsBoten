@@ -61,7 +61,7 @@ async function downloadPortfolioImage(imageUrl, portfolioId, dataDir) {
 
 export function startServer(port, callbacks) {
   const app = express();
-  app.use(express.json());
+  app.use(express.json({ limit: '10mb' }));
 
   // ── Hälsa (publik) ────────────────────────────────────────────────────────
 
