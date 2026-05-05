@@ -728,8 +728,9 @@ function openCreateBundle() {
   document.getElementById('bundle-items-list').innerHTML = unbundledUnsold.map((i) =>
     `<label class="bundle-item-check">
       <input type="checkbox" name="bundle-item" value="${i.id}">
-      <span>${escAttr(i.title ?? 'Okänd annons')}</span>
-      <span>${totalInvested(i).toLocaleString('sv')} kr</span>
+      <span class="bic-mark"></span>
+      <span class="bic-title">${escAttr(i.title ?? 'Okänd annons')}</span>
+      <span class="bic-price">${totalInvested(i).toLocaleString('sv')} kr</span>
     </label>`
   ).join('');
   document.getElementById('bundle-name').value = '';
