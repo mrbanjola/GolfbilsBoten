@@ -27,6 +27,21 @@ CREATE TABLE IF NOT EXISTS seen_ads (
   FOREIGN KEY (watch_id) REFERENCES watches(id) ON DELETE CASCADE
 );
 
+-- Portfolio: köpta och sålda föremål
+CREATE TABLE IF NOT EXISTS portfolio (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  listing_id TEXT NOT NULL,
+  platform TEXT NOT NULL,
+  title TEXT,
+  url TEXT,
+  image_url TEXT,
+  watch_query TEXT,
+  purchase_price INTEGER NOT NULL,
+  purchased_at TEXT DEFAULT (datetime('now')),
+  sold_price INTEGER,
+  sold_at TEXT
+);
+
 -- App-inställningar (AI prompt, modell, flaggor, etc.)
 CREATE TABLE IF NOT EXISTS settings (
   key TEXT PRIMARY KEY,

@@ -69,6 +69,7 @@ function runMigrations() {
   const seenAdsMigrations = [
     { col: 'ending_soon_notified', sql: 'ALTER TABLE seen_ads ADD COLUMN ending_soon_notified INTEGER DEFAULT 0' },
     { col: 'notified', sql: 'ALTER TABLE seen_ads ADD COLUMN notified INTEGER DEFAULT 0' },
+    { col: 'image_url', sql: 'ALTER TABLE seen_ads ADD COLUMN image_url TEXT' },
   ];
   for (const { col, sql } of seenAdsMigrations) {
     if (!seenAdsCols.includes(col)) {
@@ -184,11 +185,12 @@ export function isAdSeen(adId, platform) {
  * @param {string} title
  * @param {number|null} price
  * @param {string} url
+ * @param {string|null} imageUrl
  */
-export function markAdSeen(adId, platform, watchId, title, price, url) {
+export function markAdSeen(adId, platform, watchId, title, price, url, imageUrl = null) {
   db.prepare(
-    'INSERT OR IGNORE INTO seen_ads (id, platform, watch_id, title, price, url) VALUES (?, ?, ?, ?, ?, ?)'
-  ).run(adId, platform, watchId, title ?? null, price ?? null, url ?? null);
+    'INSERT OR IGNORE INTO seen_ads (id, platform, watch_id, title, price, url, image_url) VALUES (?, ?, ?, ?, ?, ?, ?)'
+  ).run(adId, platform, watchId, title ?? null, price ?? null, url ?? null, imageUrl ?? null);
 }
 
 /**
@@ -250,10 +252,34 @@ export function getStats() {
   ).all();
 
   const recent = db.prepare(
-    'SELECT s.id, s.platform, s.title, s.price, s.url, s.first_seen_at, w.query as watch_query FROM seen_ads s LEFT JOIN watches w ON s.watch_id = w.id WHERE s.notified = 1 ORDER BY s.first_seen_at DESC LIMIT 30'
+    'SELECT s.id, s.platform, s.title, s.price, s.url, s.image_url, s.first_seen_at, w.query as watch_query FROM seen_ads s LEFT JOIN watches w ON s.watch_id = w.id WHERE s.notified = 1 ORDER BY s.first_seen_at DESC LIMIT 30'
   ).all();
 
   return { total, today, perPlatform, perDay, perWatch, recent };
+}
+
+// ── Portfolio ──────────────────────────────────────────────────────────────
+
+export function addPurchase({ listingId, platform, title, url, imageUrl, watchQuery, purchasePrice }) {
+  const result = db.prepare(
+    'INSERT INTO portfolio (listing_id, platform, title, url, image_url, watch_query, purchase_price) VALUES (?, ?, ?, ?, ?, ?, ?)'
+  ).run(listingId, platform, title ?? null, url ?? null, imageUrl ?? null, watchQuery ?? null, purchasePrice);
+  return Number(result.lastInsertRowid);
+}
+
+export function markSold(id, soldPrice) {
+  const result = db.prepare(
+    "UPDATE portfolio SET sold_price = ?, sold_at = datetime('now') WHERE id = ?"
+  ).run(soldPrice, id);
+  return result.changes > 0;
+}
+
+export function getPortfolio() {
+  return db.prepare('SELECT * FROM portfolio ORDER BY purchased_at DESC').all();
+}
+
+export function updatePortfolioImageUrl(id, imageUrl) {
+  db.prepare('UPDATE portfolio SET image_url = ? WHERE id = ?').run(imageUrl, id);
 }
 
 function serializeSettingValue(value) {

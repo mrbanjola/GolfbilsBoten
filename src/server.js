@@ -1,9 +1,9 @@
 import express from 'express';
 import basicAuth from 'express-basic-auth';
-import { existsSync, writeFileSync, statSync } from 'fs';
+import { existsSync, writeFileSync, statSync, mkdirSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import { getWatchesList, addWatch, removeWatch, updateWatch, getAiSettings, updateAiSettings, getStats } from './db/database.js';
+import { getWatchesList, addWatch, removeWatch, updateWatch, getAiSettings, updateAiSettings, getStats, addPurchase, markSold, getPortfolio, updatePortfolioImageUrl } from './db/database.js';
 import { LOCATIONS_LIST, CATEGORIES_LIST } from './constants.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -29,6 +29,21 @@ function validateAiSettings(settings) {
   if ('batch_size' in settings && (!Number.isInteger(settings.batch_size) || settings.batch_size < 1 || settings.batch_size > 25))
     return 'Batch size måste vara mellan 1 och 25.';
   return null;
+}
+
+async function downloadPortfolioImage(imageUrl, portfolioId, dataDir) {
+  const dir = join(dataDir, 'portfolio-images');
+  mkdirSync(dir, { recursive: true });
+
+  const response = await fetch(imageUrl, { signal: AbortSignal.timeout(10000) });
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+  const contentType = response.headers.get('content-type') ?? '';
+  const ext = contentType.includes('png') ? '.png' : contentType.includes('webp') ? '.webp' : '.jpg';
+
+  const buffer = Buffer.from(await response.arrayBuffer());
+  writeFileSync(join(dir, `${portfolioId}${ext}`), buffer);
+  return `/portfolio-images/${portfolioId}${ext}`;
 }
 
 export function startServer(port, callbacks) {
@@ -122,6 +137,40 @@ export function startServer(port, callbacks) {
     const error = validateAiSettings(merged);
     if (error) return res.status(400).json({ error });
     res.json(updateAiSettings(incoming));
+  });
+
+  // ── Portfolio ─────────────────────────────────────────────────────────────
+
+  app.get('/api/portfolio', (_req, res) => {
+    res.json(getPortfolio());
+  });
+
+  app.use('/portfolio-images', express.static(join(callbacks.dataDir, 'portfolio-images')));
+
+  app.post('/api/portfolio', async (req, res) => {
+    const { listing_id, platform, title, url, image_url, watch_query, purchase_price } = req.body;
+    if (!listing_id || !platform) return res.status(400).json({ error: 'listing_id och platform krävs' });
+    const price = Number(purchase_price);
+    if (!Number.isInteger(price) || price < 0) return res.status(400).json({ error: 'purchase_price måste vara ett positivt heltal' });
+    const id = addPurchase({ listingId: listing_id, platform, title, url, imageUrl: image_url ?? null, watchQuery: watch_query, purchasePrice: price });
+    if (image_url) {
+      try {
+        const localPath = await downloadPortfolioImage(image_url, id, callbacks.dataDir);
+        updatePortfolioImageUrl(id, localPath);
+      } catch (err) {
+        console.warn(`[Portfolio] Bild-nedladdning misslyckades för #${id}: ${err.message}`);
+      }
+    }
+    res.json({ id });
+  });
+
+  app.patch('/api/portfolio/:id/sold', (req, res) => {
+    const id = parseInt(req.params.id, 10);
+    const price = Number(req.body.sold_price);
+    if (!Number.isInteger(price) || price < 0) return res.status(400).json({ error: 'sold_price måste vara ett positivt heltal' });
+    const ok = markSold(id, price);
+    if (!ok) return res.status(404).json({ error: 'Portfolio-post hittades inte' });
+    res.json({ ok: true });
   });
 
   // ── Facebook-session ──────────────────────────────────────────────────────

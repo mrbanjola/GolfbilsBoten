@@ -744,6 +744,27 @@
     box-shadow: inset 0 1px 0 rgba(255,255,255,0.95), 0 4px 14px rgba(31,38,135,0.08);
   }
 
+  .recent-thumb {
+    width: 52px;
+    height: 52px;
+    border-radius: var(--radius-xs);
+    object-fit: cover;
+    flex-shrink: 0;
+    background: rgba(0,0,0,0.06);
+  }
+
+  .recent-thumb-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-4);
+  }
+
+  .recent-thumb-placeholder svg {
+    width: 26px;
+    height: 26px;
+  }
+
   .recent-platform {
     font-size: .65rem;
     font-weight: 700;
@@ -756,6 +777,54 @@
   .recent-title { flex: 1; font-size: .85rem; font-weight: 600; color: var(--text); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .recent-price { font-size: .85rem; font-weight: 700; color: var(--primary); white-space: nowrap; }
   .recent-time { font-size: .72rem; color: var(--text-4); white-space: nowrap; }
+
+  /* ── Portfolio ── */
+  .portfolio-list { display: grid; gap: 10px; }
+
+  .portfolio-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    background: rgba(255,255,255,0.5);
+    border: 1px solid rgba(255,255,255,0.75);
+    border-radius: var(--radius-sm);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.9);
+  }
+
+  .portfolio-info { flex: 1; min-width: 0; }
+  .portfolio-title { font-size: .88rem; font-weight: 600; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-bottom: 5px; }
+  .portfolio-meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 3px; }
+  .portfolio-buy-price { font-size: .78rem; color: var(--text-3); }
+  .portfolio-date { font-size: .72rem; color: var(--text-4); }
+
+  .portfolio-result { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex-shrink: 0; min-width: 100px; }
+
+  .profit-badge {
+    font-size: .75rem;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 20px;
+    white-space: nowrap;
+  }
+  .profit-positive { background: rgba(5,150,105,0.12); color: #059669; border: 1px solid rgba(5,150,105,0.25); }
+  .profit-negative { background: rgba(220,38,38,0.08); color: #dc2626; border: 1px solid rgba(220,38,38,0.2); }
+  .profit-held { background: rgba(148,163,184,0.15); color: var(--text-3); border: 1px solid rgba(148,163,184,0.3); }
+  .profit-sold-price { font-size: .72rem; color: var(--text-4); white-space: nowrap; }
+
+  .btn-sell {
+    font-size: .75rem; font-weight: 600; padding: 4px 12px; border-radius: 20px;
+    border: 1px solid var(--primary-border); background: var(--primary-pale); color: var(--primary);
+    cursor: pointer; transition: all .15s; white-space: nowrap;
+  }
+  .btn-sell:hover { background: rgba(5,150,105,0.18); }
+
+  .btn-buy {
+    font-size: .72rem; font-weight: 600; padding: 3px 10px; border-radius: 20px;
+    border: 1px solid rgba(5,150,105,0.28); background: rgba(5,150,105,0.1); color: var(--primary);
+    cursor: pointer; transition: all .15s; white-space: nowrap; flex-shrink: 0;
+  }
+  .btn-buy:hover { background: rgba(5,150,105,0.18); }
 
   /* ── Responsive ── */
   @media (max-width: 600px) {
@@ -780,10 +849,16 @@
     .day-label { font-size: .55rem; }
 
     .recent-card { flex-wrap: wrap; gap: 6px; }
-    .recent-title { width: 100%; order: -1; white-space: normal; font-size: .82rem; }
+    .recent-thumb { width: 44px; height: 44px; order: -2; }
+    .recent-title { width: calc(100% - 56px); order: -1; white-space: normal; font-size: .82rem; }
     .recent-platform { order: 0; }
     .recent-price { order: 1; margin-left: auto; }
     .recent-time { order: 2; }
+    .btn-buy { order: 3; margin-left: auto; }
+
+    .portfolio-card { flex-wrap: wrap; }
+    .portfolio-info { width: calc(100% - 64px); }
+    .portfolio-result { flex-direction: row; align-items: center; flex-wrap: wrap; width: 100%; justify-content: flex-end; }
   }
 </style>
 </head>
@@ -937,6 +1012,35 @@
 
 </div><!-- /view-stats -->
 
+<div class="view" id="view-portfolio">
+
+  <!-- Sammanfattning -->
+  <div class="card">
+    <div class="card-head">
+      <div class="card-icon ci-green">💰</div>
+      <h2>Portfolio</h2>
+    </div>
+    <div class="stat-grid">
+      <div class="stat-card"><div class="stat-value" id="port-invested">–</div><div class="stat-label">Investerat</div></div>
+      <div class="stat-card"><div class="stat-value" id="port-revenue">–</div><div class="stat-label">Intäkter</div></div>
+      <div class="stat-card"><div class="stat-value" id="port-profit">–</div><div class="stat-label">Vinst / förlust</div></div>
+      <div class="stat-card"><div class="stat-value" id="port-held-count">–</div><div class="stat-label">I lager</div></div>
+    </div>
+  </div>
+
+  <!-- Affärer -->
+  <div class="card">
+    <div class="card-head">
+      <div class="card-icon ci-amber">🛒</div>
+      <h2>Affärer</h2>
+    </div>
+    <div class="portfolio-list" id="portfolio-list">
+      <div class="empty"><div class="empty-icon">⏳</div>Laddar...</div>
+    </div>
+  </div>
+
+</div><!-- /view-portfolio -->
+
 </main>
 
 <nav class="bottom-nav">
@@ -945,6 +1049,9 @@
   </button>
   <button class="nav-tab" id="tab-stats" onclick="switchTab('stats')">
     <span class="nav-icon">📊</span>Statistik
+  </button>
+  <button class="nav-tab" id="tab-portfolio" onclick="switchTab('portfolio')">
+    <span class="nav-icon">💰</span>Portfolio
   </button>
 </nav>
 
@@ -1078,6 +1185,48 @@
     </div>
     <div class="dialog-foot">
       <button type="button" class="btn-secondary" onclick="document.getElementById('edit-dialog').close()">Avbryt</button>
+      <button type="submit" class="btn-primary">Spara</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Markera som köpt -->
+<dialog id="buy-dialog">
+  <div class="dialog-head">
+    <h3>Markera som köpt</h3>
+    <button type="button" class="dialog-close" onclick="document.getElementById('buy-dialog').close()">✕</button>
+  </div>
+  <form onsubmit="confirmPurchase(event)">
+    <div class="dialog-body">
+      <p id="buy-item-title" style="font-weight:600;margin-bottom:14px;color:var(--text-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">–</p>
+      <div class="field">
+        <label>Köppris (kr) *</label>
+        <input id="buy-price" type="number" min="0" step="1" placeholder="t.ex. 4 500" required>
+      </div>
+    </div>
+    <div class="dialog-foot">
+      <button type="button" class="btn-secondary" onclick="document.getElementById('buy-dialog').close()">Avbryt</button>
+      <button type="submit" class="btn-primary">Spara</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Markera som såld -->
+<dialog id="sell-dialog">
+  <div class="dialog-head">
+    <h3>Markera som såld</h3>
+    <button type="button" class="dialog-close" onclick="document.getElementById('sell-dialog').close()">✕</button>
+  </div>
+  <form onsubmit="confirmSell(event)">
+    <div class="dialog-body">
+      <p id="sell-item-title" style="font-weight:600;margin-bottom:14px;color:var(--text-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">–</p>
+      <div class="field">
+        <label>Säljpris (kr) *</label>
+        <input id="sell-price" type="number" min="0" step="1" placeholder="t.ex. 6 000" required>
+      </div>
+    </div>
+    <div class="dialog-foot">
+      <button type="button" class="btn-secondary" onclick="document.getElementById('sell-dialog').close()">Avbryt</button>
       <button type="submit" class="btn-primary">Spara</button>
     </div>
   </form>
@@ -1305,6 +1454,7 @@ function switchTab(name) {
   document.getElementById(`view-${name}`).classList.add('active');
   document.getElementById(`tab-${name}`).classList.add('active');
   if (name === 'stats') loadStats();
+  if (name === 'portfolio') loadPortfolio();
 }
 
 // ── Statistics ──
@@ -1313,6 +1463,18 @@ const PLATFORM_COLORS = {
   blinto: '#chip-slate', auctionet: '#chip-green', budi: '#chip-amber',
   junora: '#chip-slate', facebook: '#chip-blue',
 };
+
+function thumbPlaceholderHtml() {
+  return `<div class="recent-thumb recent-thumb-placeholder" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg></div>`;
+}
+
+function thumbPlaceholder() {
+  const el = document.createElement('div');
+  el.className = 'recent-thumb recent-thumb-placeholder';
+  el.setAttribute('aria-hidden', 'true');
+  el.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>`;
+  return el;
+}
 
 function platformChipClass(p) {
   const map = { blocket:'chip-blue', tradera:'chip-amber', klaravik:'chip-green',
@@ -1370,11 +1532,151 @@ async function loadStats() {
   // Recent
   document.getElementById('stat-recent').innerHTML = s.recent.length ? s.recent.map((r) => `
     <a class="recent-card" href="${r.url || '#'}" target="_blank" rel="noopener">
+      ${r.image_url
+        ? `<img class="recent-thumb" src="${r.image_url}" alt="" loading="lazy" onerror="this.replaceWith(thumbPlaceholder())">`
+        : thumbPlaceholderHtml()}
       <span class="chip ${platformChipClass(r.platform)} recent-platform">${r.platform}</span>
-      <span class="recent-title" title="${r.title ?? ''}">${r.title ?? '–'}</span>
+      <span class="recent-title" title="${escAttr(r.title)}">${r.title ?? '–'}</span>
       <span class="recent-price">${r.price ? r.price.toLocaleString('sv') + ' kr' : '–'}</span>
       <span class="recent-time">${timeAgo(r.first_seen_at)}</span>
+      <button class="btn-buy"
+        data-id="${r.id}"
+        data-platform="${r.platform}"
+        data-title="${escAttr(r.title)}"
+        data-url="${escAttr(r.url)}"
+        data-image-url="${escAttr(r.image_url)}"
+        data-query="${escAttr(r.watch_query)}"
+        onclick="openBuyDialog(this, event)">Köpt</button>
     </a>`).join('') : '<div class="empty">Inga data ännu.</div>';
+}
+
+// ── Portfolio ──
+let pendingPurchaseData = null;
+let pendingSellId = null;
+
+function escAttr(s) {
+  return (s ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+}
+
+function openBuyDialog(btn, event) {
+  event.preventDefault();
+  event.stopPropagation();
+  const d = btn.dataset;
+  pendingPurchaseData = {
+    listing_id: d.id,
+    platform: d.platform,
+    title: d.title,
+    url: d.url,
+    image_url: d.imageUrl,
+    watch_query: d.query,
+  };
+  document.getElementById('buy-item-title').textContent = d.title || 'Okänd annons';
+  document.getElementById('buy-price').value = '';
+  document.getElementById('buy-dialog').showModal();
+}
+
+async function confirmPurchase(event) {
+  event.preventDefault();
+  const price = parseInt(document.getElementById('buy-price').value, 10);
+  if (!price || price < 0) return toast('Ange ett giltigt pris.');
+  await api('/api/portfolio', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ...pendingPurchaseData, purchase_price: price }),
+  });
+  document.getElementById('buy-dialog').close();
+  pendingPurchaseData = null;
+  toast('Markerat som köpt!');
+}
+
+function openSellDialog(btn, event) {
+  event.stopPropagation();
+  pendingSellId = parseInt(btn.dataset.id, 10);
+  document.getElementById('sell-item-title').textContent = btn.dataset.title || 'Okänd annons';
+  document.getElementById('sell-price').value = '';
+  document.getElementById('sell-dialog').showModal();
+}
+
+async function confirmSell(event) {
+  event.preventDefault();
+  const price = parseInt(document.getElementById('sell-price').value, 10);
+  if (!price || price < 0) return toast('Ange ett giltigt pris.');
+  await api(`/api/portfolio/${pendingSellId}/sold`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ sold_price: price }),
+  });
+  document.getElementById('sell-dialog').close();
+  pendingSellId = null;
+  toast('Markerat som såld!');
+  await loadPortfolio();
+}
+
+async function loadPortfolio() {
+  const items = await api('/api/portfolio').catch(() => []);
+  const held = items.filter((i) => !i.sold_at);
+  const sold = items.filter((i) => i.sold_at);
+
+  const totalInvested = items.reduce((s, i) => s + i.purchase_price, 0);
+  const totalRevenue = sold.reduce((s, i) => s + (i.sold_price ?? 0), 0);
+  const totalCostOfSold = sold.reduce((s, i) => s + i.purchase_price, 0);
+  const profit = totalRevenue - totalCostOfSold;
+
+  document.getElementById('port-invested').textContent = totalInvested ? totalInvested.toLocaleString('sv') + ' kr' : '–';
+  document.getElementById('port-revenue').textContent = totalRevenue ? totalRevenue.toLocaleString('sv') + ' kr' : '–';
+  const profitEl = document.getElementById('port-profit');
+  if (sold.length) {
+    const sign = profit >= 0 ? '+' : '';
+    profitEl.textContent = sign + profit.toLocaleString('sv') + ' kr';
+    profitEl.style.color = profit > 0 ? 'var(--primary)' : profit < 0 ? 'var(--danger)' : '';
+  } else {
+    profitEl.textContent = '–';
+    profitEl.style.color = '';
+  }
+  document.getElementById('port-held-count').textContent = held.length;
+
+  const list = document.getElementById('portfolio-list');
+  if (items.length === 0) {
+    list.innerHTML = '<div class="empty"><div class="empty-icon">🛒</div>Inga köp registrerade ännu.<br>Klicka "Köpt" på en annons i Statistik-fliken.</div>';
+    return;
+  }
+  list.innerHTML = [...held, ...sold].map(portfolioCard).join('');
+}
+
+function portfolioCard(item) {
+  const thumb = item.image_url
+    ? `<img class="recent-thumb" src="${item.image_url}" alt="" loading="lazy" onerror="this.replaceWith(thumbPlaceholder())">`
+    : thumbPlaceholderHtml();
+
+  const dateStr = item.purchased_at ? new Date(item.purchased_at).toLocaleDateString('sv-SE') : '–';
+
+  let resultHtml;
+  if (item.sold_at) {
+    const p = (item.sold_price ?? 0) - item.purchase_price;
+    const sign = p >= 0 ? '+' : '';
+    const cls = p >= 0 ? 'profit-positive' : 'profit-negative';
+    resultHtml = `
+      <span class="profit-badge ${cls}">${sign}${p.toLocaleString('sv')} kr</span>
+      <span class="profit-sold-price">Såld: ${(item.sold_price ?? 0).toLocaleString('sv')} kr</span>`;
+  } else {
+    resultHtml = `
+      <span class="profit-badge profit-held">I lager</span>
+      <button class="btn-sell" data-id="${item.id}" data-title="${escAttr(item.title)}" onclick="openSellDialog(this, event)">Markera såld</button>`;
+  }
+
+  return `<div class="portfolio-card">
+    ${thumb}
+    <div class="portfolio-info">
+      <div class="portfolio-title" title="${escAttr(item.title)}">${item.title ?? 'Okänd annons'}</div>
+      <div class="portfolio-meta">
+        <span class="chip ${platformChipClass(item.platform)} recent-platform">${item.platform}</span>
+        ${item.watch_query ? `<span class="portfolio-date">${item.watch_query}</span>` : ''}
+        <span class="portfolio-date">${dateStr}</span>
+      </div>
+      <div class="portfolio-buy-price">Köpt för ${item.purchase_price.toLocaleString('sv')} kr</div>
+    </div>
+    <div class="portfolio-result">${resultHtml}</div>
+  </div>`;
 }
 
 init().catch((err) => toast(err.message));

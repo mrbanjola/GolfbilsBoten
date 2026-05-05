@@ -22,7 +22,7 @@ export function filterAndMarkNew(listings, watchId) {
 
   for (const listing of listings) {
     if (!isAdSeen(listing.id, listing.platform)) {
-      markAdSeen(listing.id, listing.platform, watchId, listing.title, listing.price, listing.url);
+      markAdSeen(listing.id, listing.platform, watchId, listing.title, listing.price, listing.url, listing.imageUrl ?? null);
       newListings.push(listing);
     }
   }
@@ -38,6 +38,6 @@ export function filterAndMarkNew(listings, watchId) {
  */
 export function markAllSeen(listings, watchId) {
   for (const listing of listings) {
-    markAdSeen(listing.id, listing.platform, watchId, listing.title, listing.price, listing.url);
+    markAdSeen(listing.id, listing.platform, watchId, listing.title, listing.price, listing.url, listing.imageUrl ?? null);
   }
 }

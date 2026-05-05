@@ -4,3 +4,4 @@ data/*
 !data/.gitkeep
 debug-*.js
 *.md
+.claude

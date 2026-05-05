@@ -6,7 +6,7 @@ import { isAdSeen } from '../db/database.js';
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-// Örebro, 402km radius — täcker hela Sverige
+// Örebro, 402km radius — täcker större delen av södra Sverige inklusive Göteborg, Malmö, Linköping, Jönköping etc.
 const DEFAULT_LOCATION_ID = '110611878960213';
 const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages';
 
