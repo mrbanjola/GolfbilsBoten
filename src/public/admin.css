@@ -433,6 +433,7 @@
   .chip-amber  { background: rgba(217,119,6,0.1);   color: #b45309; border: 1px solid rgba(217,119,6,0.2); }
   .chip-slate  { background: rgba(71,85,105,0.08);  color: #475569; border: 1px solid rgba(71,85,105,0.15); }
   .chip-red    { background: rgba(220,38,38,0.08);  color: #dc2626; border: 1px solid rgba(220,38,38,0.18); }
+  .chip-teal   { background: rgba(13,148,136,0.1);  color: #0d9488; border: 1px solid rgba(13,148,136,0.22); }
 
   .watch-actions { display: flex; gap: 6px; flex-shrink: 0; align-items: center; }
 

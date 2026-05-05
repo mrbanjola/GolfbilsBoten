@@ -18,6 +18,8 @@ async function init() {
   document.getElementById('edit-location').insertAdjacentHTML('beforeend', opts);
   const catOpts = portfolioCategories.map((c) => `<option value="${c.value}">${c.label}</option>`).join('');
   document.getElementById('pedit-category').insertAdjacentHTML('beforeend', catOpts);
+  document.getElementById('new-category').insertAdjacentHTML('beforeend', catOpts);
+  document.getElementById('edit-category').insertAdjacentHTML('beforeend', catOpts);
   await Promise.all([loadWatches(), loadAiSettings(), loadFacebookStatus()]);
 }
 
@@ -107,6 +109,9 @@ function watchCard(watch) {
 
   if (watch.exclude_words) chips.push(`<span class="chip chip-red">✕ ${watch.exclude_words}</span>`);
 
+  const categoryLabel = watch.category ? portfolioCategories.find((c) => c.value === watch.category)?.label : null;
+  if (categoryLabel) chips.push(`<span class="chip chip-teal">🏷 ${categoryLabel}</span>`);
+
   const carBadge = watch.is_car ? '<span class="chip chip-blue">🚗 Bil</span>' : '';
   const pauseLabel = watch.paused ? '▶ Återuppta' : '⏸ Pausa';
 
@@ -155,6 +160,7 @@ async function addWatch(event) {
       ad_type: document.getElementById('new-adtype').value,
       is_car: document.getElementById('new-is-car').checked ? 1 : 0,
       exclude_words: document.getElementById('new-exclude').value.trim() || null,
+      category: document.getElementById('new-category').value || null,
     }),
   });
   event.target.reset();
@@ -180,6 +186,7 @@ function openEdit(watch) {
   document.getElementById('edit-platforms').value = watch.platforms ?? 'blocket';
   document.getElementById('edit-is-car').checked = Boolean(watch.is_car);
   document.getElementById('edit-exclude').value = watch.exclude_words ?? '';
+  document.getElementById('edit-category').value = watch.category ?? '';
   document.getElementById('edit-dialog').showModal();
 }
 
@@ -198,6 +205,7 @@ async function saveEdit(event) {
       platforms: document.getElementById('edit-platforms').value,
       is_car: document.getElementById('edit-is-car').checked ? 1 : 0,
       exclude_words: document.getElementById('edit-exclude').value.trim() || null,
+      category: document.getElementById('edit-category').value || null,
     }),
   });
   document.getElementById('edit-dialog').close();

@@ -110,7 +110,7 @@ export function startServer(port, callbacks) {
 
   app.patch('/api/watches/:id', (req, res) => {
     const id = parseInt(req.params.id, 10);
-    const allowed = ['query', 'location', 'ad_type', 'exclude_words', 'sort_order', 'max_price', 'min_price', 'platforms', 'is_car', 'paused'];
+    const allowed = ['query', 'location', 'ad_type', 'exclude_words', 'sort_order', 'max_price', 'min_price', 'platforms', 'is_car', 'paused', 'category'];
     const updates = Object.entries(req.body).filter(([key]) => allowed.includes(key));
     if (updates.length === 0) return res.status(400).json({ error: 'Inga giltiga fält' });
     for (const [field, value] of updates) {

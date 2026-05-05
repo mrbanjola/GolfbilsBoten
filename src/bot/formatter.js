@@ -55,13 +55,19 @@ export function formatAuctionNotice(listing, watch) {
   }
 
   const tagsStr = listing.tags?.length ? `\n🏷️ ${listing.tags.join(' · ')}` : '';
+  const profitStr = listing.profitEstimate ? (() => {
+    const pe = listing.profitEstimate;
+    const low = pe.low >= 0 ? `+${pe.low.toLocaleString('sv')}` : pe.low.toLocaleString('sv');
+    const high = pe.high >= 0 ? `+${pe.high.toLocaleString('sv')}` : pe.high.toLocaleString('sv');
+    return `\n💰 Potential: ${low}–${high} kr${pe.rationale ? ` · ${pe.rationale}` : ''}`;
+  })() : '';
   return (
     `⏳ *Avslutas snart!*\n` +
     `Bevakning: "${watch.query}"\n\n` +
     `*${listing.title}*\n` +
     `${priceStr} · ${bidStr}\n` +
     `📍 ${locationStr}\n` +
-    `⏰ ${endTimeStr}${timeLeftStr}${reserveStr}${tagsStr}\n\n` +
+    `⏰ ${endTimeStr}${timeLeftStr}${reserveStr}${tagsStr}${profitStr}\n\n` +
     `${listing.url}`
   );
 }
@@ -84,13 +90,19 @@ export function formatNewListing(listing, watch) {
   const locationStr = listing.location || 'Okänd plats';
 
   const tagsStr = listing.tags?.length ? `🏷️ ${listing.tags.join(' · ')}\n` : '';
+  const profitStr = listing.profitEstimate ? (() => {
+    const pe = listing.profitEstimate;
+    const low = pe.low >= 0 ? `+${pe.low.toLocaleString('sv')}` : pe.low.toLocaleString('sv');
+    const high = pe.high >= 0 ? `+${pe.high.toLocaleString('sv')}` : pe.high.toLocaleString('sv');
+    return `💰 Potential: ${low}–${high} kr${pe.rationale ? ` · ${pe.rationale}` : ''}\n`;
+  })() : '';
   return (
     `🔔 *Ny träff!*\n` +
     `Bevakning: "${watch.query}"\n\n` +
     `*${listing.title}*\n` +
     `${priceStr} · ${locationStr}\n` +
     `${platformLabel}\n` +
-    `${tagsStr}\n` +
+    `${tagsStr}${profitStr}\n` +
     `${listing.url}`
   );
 }

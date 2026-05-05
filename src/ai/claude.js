@@ -1,3 +1,5 @@
+import { PORTFOLIO_CATEGORIES } from '../constants.js';
+
 const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages';
 const ANTHROPIC_VERSION = '2023-06-01';
 
@@ -9,7 +11,7 @@ function buildSystemPrompt(aiSettings) {
   return `${aiSettings.system_prompt.trim()}${globalRules}
 
 Return JSON only with this exact shape:
-{"results":[{"id":"string","keep":true,"reason_code":"short_code","note":"optional short note","tags":["data_name"]}]}
+{"results":[{"id":"string","keep":true,"reason_code":"short_code","note":"optional short note","tags":["data_name"],"profit_estimate":{"low":5000,"high":18000,"rationale":"short"}}]}
 
 Rules:
 - Use only the provided listing data.
@@ -18,7 +20,8 @@ Rules:
 - If the query is broad, prefer inclusion unless the listing is clearly the wrong type of thing.
 - If the query is specific, require a closer match.
 - The note field is optional and should stay short.
-- tags: array of applicable data_name strings from the tag_registry provided in the payload. Only use data_names from the registry. Use [] if none clearly apply. Be conservative — only tag when the condition is evident from title or description.`;
+- tags: array of applicable data_name strings from the tag_registry provided in the payload. Only use data_names from the registry. Use [] if none clearly apply. Be conservative — only tag when the condition is evident from title or description.
+- profit_estimate: only include if profit_context is provided and sold_items >= 2. Estimate low and high resale profit in SEK based on listing price vs avg_invested and any matching tags vs tag_insights. Set to null or omit if profit_context is absent or sold_items < 2.`;
 }
 
 function classifyQueryScope(query) {
@@ -36,10 +39,10 @@ function classifyQueryScope(query) {
   return 'broad';
 }
 
-function buildUserPayload(watch, listings, tags = []) {
+function buildUserPayload(watch, listings, tags = [], profitContext = null) {
   const queryScope = classifyQueryScope(watch.query);
 
-  return {
+  const payload = {
     tag_registry: tags.map((t) => ({ data_name: t.data_name, label: t.label })),
     watch: {
       id: watch.id,
@@ -54,6 +57,8 @@ function buildUserPayload(watch, listings, tags = []) {
       ad_type: watch.ad_type ?? 'all',
       exclude_words: watch.exclude_words ?? null,
       platforms: watch.platforms ?? 'blocket',
+      category: watch.category ?? null,
+      category_label: PORTFOLIO_CATEGORIES.find((c) => c.value === watch.category)?.label ?? null,
     },
     listings: listings.map((listing) => ({
       id: listing.id,
@@ -75,6 +80,20 @@ function buildUserPayload(watch, listings, tags = []) {
       metadata: listing.metadata ?? {},
     })),
   };
+
+  if (profitContext) {
+    payload.profit_context = {
+      category_label: PORTFOLIO_CATEGORIES.find((c) => c.value === watch.category)?.label ?? watch.category,
+      sold_items: profitContext.sold_items,
+      avg_invested: profitContext.avg_invested,
+      avg_profit: profitContext.avg_profit,
+      min_profit: profitContext.min_profit,
+      max_profit: profitContext.max_profit,
+      tag_insights: profitContext.tag_insights,
+    };
+  }
+
+  return payload;
 }
 
 function extractTextContent(messageJson) {
@@ -106,6 +125,9 @@ function parseClaudeResponse(text, expectedIds) {
     reasonCode: typeof item.reason_code === 'string' ? item.reason_code : 'unknown',
     note: typeof item.note === 'string' ? item.note : '',
     tags: Array.isArray(item.tags) ? item.tags.filter((t) => typeof t === 'string') : [],
+    profitEstimate: item.profit_estimate && typeof item.profit_estimate.low === 'number' && typeof item.profit_estimate.high === 'number'
+      ? { low: Number(item.profit_estimate.low), high: Number(item.profit_estimate.high), rationale: item.profit_estimate.rationale ?? '' }
+      : null,
   }));
 
   const decisionIds = new Set(decisions.map((item) => item.id));
@@ -118,7 +140,7 @@ function parseClaudeResponse(text, expectedIds) {
   return decisions;
 }
 
-export async function filterListingsWithClaude({ apiKey, aiSettings, watch, listings, tags = [] }) {
+export async function filterListingsWithClaude({ apiKey, aiSettings, watch, listings, tags = [], profitContext = null }) {
   if (!aiSettings.enabled || listings.length === 0) {
     return { approved: listings, decisions: [], skipped: true };
   }
@@ -142,12 +164,12 @@ export async function filterListingsWithClaude({ apiKey, aiSettings, watch, list
       },
       body: JSON.stringify({
         model: aiSettings.model,
-        max_tokens: 2048,
+        max_tokens: 3000,
         system: buildSystemPrompt(aiSettings),
         messages: [
           {
             role: 'user',
-            content: JSON.stringify(buildUserPayload(watch, listings, tags)),
+            content: JSON.stringify(buildUserPayload(watch, listings, tags, profitContext)),
           },
         ],
       }),

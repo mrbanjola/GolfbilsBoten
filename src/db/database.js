@@ -58,6 +58,7 @@ function runMigrations() {
     { col: 'sort_order',    sql: "ALTER TABLE watches ADD COLUMN sort_order TEXT DEFAULT 'PUBLISHED_DESC'" },
     { col: 'is_car',        sql: 'ALTER TABLE watches ADD COLUMN is_car INTEGER DEFAULT 0' },
     { col: 'paused',        sql: 'ALTER TABLE watches ADD COLUMN paused INTEGER DEFAULT 0' },
+    { col: 'category',      sql: 'ALTER TABLE watches ADD COLUMN category TEXT' },
   ];
   for (const { col, sql } of watchesMigrations) {
     if (!watchesCols.includes(col)) {
@@ -183,7 +184,7 @@ export function getWatchByIndex(index) {
  * @param {string|number|null} value
  */
 export function updateWatch(id, field, value) {
-  const allowed = ['query', 'location', 'ad_type', 'exclude_words', 'sort_order', 'max_price', 'min_price', 'platforms', 'is_car', 'paused'];
+  const allowed = ['query', 'location', 'ad_type', 'exclude_words', 'sort_order', 'max_price', 'min_price', 'platforms', 'is_car', 'paused', 'category'];
   if (!allowed.includes(field)) throw new Error(`Otillåtet fält: ${field}`);
   db.prepare(`UPDATE watches SET ${field} = ? WHERE id = ?`).run(value, id);
 }
@@ -447,6 +448,47 @@ export function getPortfolioAnalytics() {
   `).all();
 
   return { byCategory, byTag };
+}
+
+export function getProfitHistory(category) {
+  const row = db.prepare(`
+    SELECT
+      COUNT(*) AS sold_items,
+      ROUND(AVG(p.purchase_price + COALESCE(c.total, 0))) AS avg_invested,
+      ROUND(AVG(p.sold_price)) AS avg_sold,
+      ROUND(AVG(p.sold_price - (p.purchase_price + COALESCE(c.total, 0)))) AS avg_profit,
+      ROUND(MIN(p.sold_price - (p.purchase_price + COALESCE(c.total, 0)))) AS min_profit,
+      ROUND(MAX(p.sold_price - (p.purchase_price + COALESCE(c.total, 0)))) AS max_profit
+    FROM portfolio p
+    LEFT JOIN (SELECT portfolio_id, SUM(amount) AS total FROM portfolio_costs GROUP BY portfolio_id) c
+      ON c.portfolio_id = p.id
+    WHERE p.category = ? AND p.sold_at IS NOT NULL AND p.bundle_id IS NULL
+  `).get(category);
+
+  if (!row || row.sold_items === 0) return null;
+
+  const tagRows = db.prepare(`
+    SELECT t.data_name, t.label, COUNT(*) AS count,
+      ROUND(AVG(p.sold_price - (p.purchase_price + COALESCE(c.total, 0)))) AS avg_profit
+    FROM portfolio_tags pt
+    JOIN tags t ON t.data_name = pt.tag
+    JOIN portfolio p ON p.id = pt.portfolio_id
+    LEFT JOIN (SELECT portfolio_id, SUM(amount) AS total FROM portfolio_costs GROUP BY portfolio_id) c
+      ON c.portfolio_id = p.id
+    WHERE p.category = ? AND p.sold_at IS NOT NULL AND p.bundle_id IS NULL
+    GROUP BY t.data_name
+    ORDER BY count DESC
+  `).all(category);
+
+  return {
+    sold_items: row.sold_items,
+    avg_invested: row.avg_invested,
+    avg_sold: row.avg_sold,
+    avg_profit: row.avg_profit,
+    min_profit: row.min_profit,
+    max_profit: row.max_profit,
+    tag_insights: tagRows.map((r) => ({ data_name: r.data_name, label: r.label, count: r.count, avg_profit: r.avg_profit })),
+  };
 }
 
 // ── Tags ───────────────────────────────────────────────────────────────────

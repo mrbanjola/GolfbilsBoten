@@ -1,5 +1,5 @@
 import cron from 'node-cron';
-import { getActiveWatches, getAiSettings, markInitialScanDone, getTags } from '../db/database.js';
+import { getActiveWatches, getAiSettings, markInitialScanDone, getTags, getProfitHistory } from '../db/database.js';
 import { BlocketAdapter } from '../adapters/blocket.js';
 import { TraderaAdapter } from '../adapters/tradera.js';
 import { KlaravikAdapter } from '../adapters/klaravik.js';
@@ -87,6 +87,7 @@ async function applyAiRelevanceFilter({ adapter, watch, listings, aiSettings }) 
 
   const tags = getTags();
   const tagLabelMap = new Map(tags.map((t) => [t.data_name, t.label]));
+  const profitContext = watch.category ? getProfitHistory(watch.category) : null;
   const batchSize = Math.max(1, aiSettings.batch_size || listings.length);
   const approved = [];
 
@@ -101,6 +102,7 @@ async function applyAiRelevanceFilter({ adapter, watch, listings, aiSettings }) 
         watch,
         listings: enriched,
         tags,
+        profitContext,
       });
 
       if (!result.skipped) {
@@ -115,10 +117,14 @@ async function applyAiRelevanceFilter({ adapter, watch, listings, aiSettings }) 
             if (decision.tags?.length) {
               listing.tags = decision.tags.map((dn) => tagLabelMap.get(dn)).filter(Boolean);
             }
+            if (decision.profitEstimate) {
+              listing.profitEstimate = decision.profitEstimate;
+            }
             console.log(
               `[Claude][Keep] "${watch.query}" - ${listing.id} - ${listing.title} - ${priceLabel} - ${decision.reasonCode}` +
               `${decision.note ? ` - ${decision.note}` : ''}` +
-              `${decision.tags?.length ? ` - [${decision.tags.join(', ')}]` : ''}`
+              `${decision.tags?.length ? ` - [${decision.tags.join(', ')}]` : ''}` +
+              `${decision.profitEstimate ? ` - 💰 ${decision.profitEstimate.low}–${decision.profitEstimate.high} kr` : ''}`
             );
             continue;
           }
