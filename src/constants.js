@@ -93,8 +93,10 @@ export const CATEGORIES_LIST = [
 export const PORTFOLIO_CATEGORIES = [
   { value: 'car',           label: 'Bil' },
   { value: 'boat',          label: 'Båt' },
+  { value: 'boat_motor',    label: 'Båtmotor' },
   { value: 'golf_cart',     label: 'Golfbil' },
   { value: 'excavator',     label: 'Grävmaskin' },
+  { value: 'accessory',     label: 'Tillbehör' },
   { value: 'other_machine', label: 'Övriga maskiner' },
 ];
 
