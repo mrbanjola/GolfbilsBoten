@@ -180,7 +180,7 @@ export class FacebookAdapter extends BaseAdapter {
               },
               {
                 type: 'text',
-                text: `Facebook Marketplace search results for "${query}". Extract every visible listing card, left-to-right, top-to-bottom. For each card: title (use image description if no text title visible, e.g. "Röd golfbil" or "VW Golf 2015"), price as integer SEK (null if not shown), location string. Return only valid JSON: {"listings":[{"title":"...","price":95000,"location":"Örebro"}]}`,
+                text: `Facebook Marketplace search results for "${query}". Extract every visible listing card, left-to-right, top-to-bottom. For each card: title (copy the exact text shown on the card — do NOT describe the image or invent a title; use null if no title text is visible), price as integer SEK (null if not shown), location string. Return only valid JSON: {"listings":[{"title":"...","price":95000,"location":"Örebro"}]}`,
               },
             ],
           }],
