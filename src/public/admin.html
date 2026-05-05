@@ -779,26 +779,44 @@
   .recent-time { font-size: .72rem; color: var(--text-4); white-space: nowrap; }
 
   /* ── Portfolio ── */
-  .portfolio-list { display: grid; gap: 10px; }
+  .portfolio-list { display: grid; gap: 12px; }
 
   .portfolio-card {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px 14px;
     background: rgba(255,255,255,0.5);
     border: 1px solid rgba(255,255,255,0.75);
     border-radius: var(--radius-sm);
     box-shadow: inset 0 1px 0 rgba(255,255,255,0.9);
+    overflow: hidden;
   }
 
-  .portfolio-info { flex: 1; min-width: 0; }
-  .portfolio-title { font-size: .88rem; font-weight: 600; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-bottom: 5px; }
-  .portfolio-meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 3px; }
-  .portfolio-buy-price { font-size: .78rem; color: var(--text-3); }
-  .portfolio-date { font-size: .72rem; color: var(--text-4); }
+  .pcard-top { display: flex; gap: 14px; padding: 14px 16px 10px; }
+  .pcard-img { width: 80px; height: 80px; border-radius: var(--radius-xs); object-fit: cover; flex-shrink: 0; background: rgba(0,0,0,0.06); }
+  .pcard-img-placeholder { width: 80px; height: 80px; border-radius: var(--radius-xs); flex-shrink: 0; background: rgba(0,0,0,0.06); display: flex; align-items: center; justify-content: center; color: var(--text-4); }
+  .pcard-img-placeholder svg { width: 32px; height: 32px; }
 
-  .portfolio-result { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex-shrink: 0; min-width: 100px; }
+  .pcard-body { flex: 1; min-width: 0; }
+  .pcard-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
+  .pcard-title { font-size: .9rem; font-weight: 700; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pcard-date { font-size: .72rem; color: var(--text-4); margin-bottom: 10px; }
+
+  .pcard-rows { display: grid; gap: 3px; }
+  .pcard-row { display: flex; justify-content: space-between; align-items: baseline; font-size: .82rem; gap: 8px; }
+  .pcard-row-label { color: var(--text-3); }
+  .pcard-row-value { font-weight: 600; color: var(--text-2); white-space: nowrap; }
+  .pcard-row-value.muted { font-weight: 400; color: var(--text-4); font-size: .75rem; }
+  .pcard-divider { border: none; border-top: 1px solid rgba(0,0,0,0.06); margin: 5px 0; }
+  .pcard-invested .pcard-row-label { font-weight: 600; color: var(--text-2); }
+  .pcard-invested .pcard-row-value { color: var(--text); }
+
+  .pcard-notes { font-size: .78rem; color: var(--text-3); font-style: italic; margin-top: 8px; line-height: 1.4; }
+
+  .pcard-footer {
+    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;
+    padding: 10px 16px; border-top: 1px solid rgba(0,0,0,0.06);
+    background: rgba(0,0,0,0.02);
+  }
+  .pcard-result { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .pcard-actions { display: flex; gap: 6px; }
 
   .profit-badge {
     font-size: .75rem;
@@ -825,6 +843,26 @@
     cursor: pointer; transition: all .15s; white-space: nowrap; flex-shrink: 0;
   }
   .btn-buy:hover { background: rgba(5,150,105,0.18); }
+
+  .btn-edit-portfolio {
+    font-size: .7rem; font-weight: 600; padding: 2px 9px; border-radius: 20px;
+    border: 1px solid rgba(148,163,184,0.4); background: rgba(148,163,184,0.1); color: var(--text-3);
+    cursor: pointer; transition: all .15s; white-space: nowrap;
+  }
+  .btn-edit-portfolio:hover { background: rgba(148,163,184,0.22); color: var(--text-2); }
+
+  /* ── Cost rows in edit dialog ── */
+  .cost-list { display: grid; gap: 6px; margin-bottom: 8px; }
+  .cost-row { display: flex; align-items: center; gap: 8px; font-size: .82rem; }
+  .cost-desc { flex: 1; color: var(--text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cost-amount { font-weight: 600; color: var(--text-2); white-space: nowrap; }
+  .cost-remove { width: 22px; height: 22px; border-radius: 50%; border: 1px solid var(--danger-border); background: var(--danger-pale); color: var(--danger); cursor: pointer; font-size: .8rem; line-height: 1; flex-shrink: 0; transition: all .15s; }
+  .cost-remove:hover { background: rgba(220,38,38,0.16); }
+  .cost-add-row { display: flex; gap: 6px; margin-top: 4px; }
+  .cost-add-row input { font-size: .82rem; }
+  .cost-add-row input:first-child { flex: 1; }
+  .cost-add-row input:last-of-type { width: 90px; }
+  .cost-empty { font-size: .78rem; color: var(--text-4); font-style: italic; margin-bottom: 4px; }
 
   /* ── Responsive ── */
   @media (max-width: 600px) {
@@ -856,9 +894,10 @@
     .recent-time { order: 2; }
     .btn-buy { order: 3; margin-left: auto; }
 
-    .portfolio-card { flex-wrap: wrap; }
-    .portfolio-info { width: calc(100% - 64px); }
-    .portfolio-result { flex-direction: row; align-items: center; flex-wrap: wrap; width: 100%; justify-content: flex-end; }
+    .pcard-img, .pcard-img-placeholder { width: 60px; height: 60px; }
+    .pcard-title { font-size: .85rem; }
+    .pcard-footer { padding: 8px 12px; }
+    .pcard-top { padding: 12px 12px 8px; gap: 10px; }
   }
 </style>
 </head>
@@ -1026,6 +1065,52 @@
       <div class="stat-card"><div class="stat-value" id="port-profit">–</div><div class="stat-label">Vinst / förlust</div></div>
       <div class="stat-card"><div class="stat-value" id="port-held-count">–</div><div class="stat-label">I lager</div></div>
     </div>
+  </div>
+
+  <!-- Importera annons -->
+  <div class="card">
+    <div class="card-head">
+      <div class="card-icon ci-blue">📥</div>
+      <h2>Importera annons</h2>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:4px">
+      <input id="import-url" type="url" placeholder="https://www.klaravik.se/auktion/..." style="flex:1">
+      <button class="btn-primary btn-sm" onclick="prefetchAndFill()" id="import-fetch-btn">Hämta</button>
+    </div>
+    <p class="hint" id="import-error" style="color:var(--danger);margin-top:6px;display:none"></p>
+
+    <form id="import-form" onsubmit="submitImport(event)" style="display:none;margin-top:16px">
+      <input type="hidden" id="import-platform">
+      <input type="hidden" id="import-fetched-image-url">
+      <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:14px">
+        <div id="import-thumb-wrap" style="flex-shrink:0">
+          <div id="import-thumb" class="recent-thumb recent-thumb-placeholder" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+          </div>
+        </div>
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+            <span class="chip chip-slate" id="import-platform-chip">–</span>
+          </div>
+          <div class="field" style="margin-bottom:8px">
+            <label>Titel</label>
+            <input id="import-title" placeholder="Annonsens titel">
+          </div>
+          <div class="field" style="margin-bottom:0">
+            <label>Bild <span style="color:var(--text-4);font-weight:400">(valfri — välj fil för att ersätta)</span></label>
+            <input id="import-image-file" type="file" accept="image/*" onchange="onImportImagePick(this)" style="font-size:.82rem">
+          </div>
+        </div>
+      </div>
+      <div class="field" style="margin-bottom:14px">
+        <label>Köppris (kr) *</label>
+        <input id="import-price" type="number" min="0" step="1" placeholder="t.ex. 4 500" required>
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn-secondary" onclick="resetImportForm()">Avbryt</button>
+        <button type="submit" class="btn-primary">Lägg till i portfolio</button>
+      </div>
+    </form>
   </div>
 
   <!-- Affärer -->
@@ -1227,6 +1312,56 @@
     </div>
     <div class="dialog-foot">
       <button type="button" class="btn-secondary" onclick="document.getElementById('sell-dialog').close()">Avbryt</button>
+      <button type="submit" class="btn-primary">Spara</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Redigera portfolio-post -->
+<dialog id="portfolio-edit-dialog">
+  <div class="dialog-head">
+    <h3>Redigera</h3>
+    <button type="button" class="dialog-close" onclick="document.getElementById('portfolio-edit-dialog').close()">✕</button>
+  </div>
+  <form onsubmit="submitPortfolioEdit(event)">
+    <div class="dialog-body">
+      <input type="hidden" id="pedit-id">
+      <p id="pedit-title" style="font-weight:600;margin-bottom:14px;color:var(--text-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">–</p>
+      <div class="field">
+        <label>Köppris (kr) *</label>
+        <input id="pedit-purchase-price" type="number" min="0" step="1" required>
+      </div>
+      <div class="field">
+        <label>Säljpris (kr) <span style="color:var(--text-4);font-weight:400">(lämna tomt om ej såld)</span></label>
+        <input id="pedit-sold-price" type="number" min="0" step="1" placeholder="–">
+      </div>
+      <div class="field">
+        <label>Extra kostnader</label>
+        <div class="cost-list" id="pedit-costs-list"></div>
+        <div class="cost-add-row">
+          <input id="pedit-cost-desc" type="text" placeholder="Beskrivning, t.ex. Nytt batteri">
+          <input id="pedit-cost-amount" type="number" min="1" step="1" placeholder="Belopp">
+          <button type="button" class="btn-secondary btn-sm" onclick="addEditCost()">+</button>
+        </div>
+      </div>
+      <div class="field">
+        <label>Kommentar</label>
+        <textarea id="pedit-notes" placeholder="T.ex. skick, vad som gjordes, fynd-info..." style="min-height:56px"></textarea>
+      </div>
+      <div class="field">
+        <label>Bild <span style="color:var(--text-4);font-weight:400">(ladda upp för att ersätta)</span></label>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+          <div id="pedit-thumb-wrap" style="flex-shrink:0">
+            <div class="recent-thumb recent-thumb-placeholder" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+            </div>
+          </div>
+          <input id="pedit-image-file" type="file" accept="image/*" onchange="onEditImagePick(this)" style="font-size:.82rem;flex:1">
+        </div>
+      </div>
+    </div>
+    <div class="dialog-foot">
+      <button type="button" class="btn-secondary" onclick="document.getElementById('portfolio-edit-dialog').close()">Avbryt</button>
       <button type="submit" class="btn-primary">Spara</button>
     </div>
   </form>
@@ -1550,6 +1685,119 @@ async function loadStats() {
     </a>`).join('') : '<div class="empty">Inga data ännu.</div>';
 }
 
+// ── Import from URL ──
+let importImageData = null;
+
+async function prefetchAndFill() {
+  const url = document.getElementById('import-url').value.trim();
+  if (!url) return;
+  const btn = document.getElementById('import-fetch-btn');
+  const errEl = document.getElementById('import-error');
+  errEl.style.display = 'none';
+  btn.disabled = true;
+  btn.textContent = '…';
+  try {
+    const data = await api('/api/portfolio/prefetch', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url }),
+    });
+    document.getElementById('import-platform').value = data.platform ?? '';
+    document.getElementById('import-platform-chip').textContent = data.platform ?? 'okänd';
+    document.getElementById('import-platform-chip').className = `chip ${platformChipClass(data.platform)} recent-platform`;
+    document.getElementById('import-title').value = data.title ?? '';
+    document.getElementById('import-fetched-image-url').value = data.imageUrl ?? '';
+    importImageData = null;
+    document.getElementById('import-image-file').value = '';
+    setImportThumb(data.imageUrl);
+    document.getElementById('import-form').style.display = '';
+  } catch (err) {
+    errEl.textContent = err.message;
+    errEl.style.display = '';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Hämta';
+  }
+}
+
+function onImportImagePick(input) {
+  const file = input.files[0];
+  if (!file) { importImageData = null; return; }
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    importImageData = e.target.result.split(',')[1];
+    setImportThumb(e.target.result, true);
+  };
+  reader.readAsDataURL(file);
+}
+
+async function submitImport(event) {
+  event.preventDefault();
+  const url = document.getElementById('import-url').value.trim();
+  const platform = document.getElementById('import-platform').value || getPlatformFromUrlClient(url) || 'okänd';
+  const title = document.getElementById('import-title').value.trim();
+  const price = parseInt(document.getElementById('import-price').value, 10);
+  const fetchedImageUrl = document.getElementById('import-fetched-image-url').value;
+  if (!price || price < 0) return toast('Ange ett giltigt köppris.');
+  const body = {
+    listing_id: `manual-${Date.now()}`,
+    platform,
+    title: title || null,
+    url: url || null,
+    watch_query: null,
+    purchase_price: price,
+  };
+  if (importImageData) {
+    body.image_data = importImageData;
+  } else if (fetchedImageUrl) {
+    body.image_url = fetchedImageUrl;
+  }
+  await api('/api/portfolio', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  resetImportForm();
+  toast('Annons importerad till portfolio!');
+  await loadPortfolio();
+}
+
+function resetImportForm() {
+  document.getElementById('import-url').value = '';
+  document.getElementById('import-form').style.display = 'none';
+  document.getElementById('import-error').style.display = 'none';
+  document.getElementById('import-title').value = '';
+  document.getElementById('import-price').value = '';
+  document.getElementById('import-image-file').value = '';
+  document.getElementById('import-fetched-image-url').value = '';
+  importImageData = null;
+  setImportThumb(null);
+}
+
+function setImportThumb(src, isLocal = false) {
+  const wrap = document.getElementById('import-thumb-wrap');
+  if (!wrap) return;
+  if (src) {
+    const onErr = isLocal ? '' : ' onerror="this.replaceWith(thumbPlaceholder())"';
+    wrap.innerHTML = `<img class="recent-thumb" src="${escAttr(src)}" alt="" loading="lazy"${onErr}>`;
+  } else {
+    wrap.innerHTML = thumbPlaceholderHtml();
+  }
+}
+
+function getPlatformFromUrlClient(url) {
+  if (!url) return null;
+  if (url.includes('blocket.se'))    return 'blocket';
+  if (url.includes('tradera.com'))   return 'tradera';
+  if (url.includes('klaravik.se'))   return 'klaravik';
+  if (url.includes('auctionet.com')) return 'auctionet';
+  if (url.includes('junora.se'))     return 'junora';
+  if (url.includes('budi.se'))       return 'budi';
+  if (url.includes('blinto.se'))     return 'blinto';
+  if (url.includes('facebook.com'))  return 'facebook';
+  return null;
+}
+
 // ── Portfolio ──
 let pendingPurchaseData = null;
 let pendingSellId = null;
@@ -1612,17 +1860,21 @@ async function confirmSell(event) {
   await loadPortfolio();
 }
 
+function totalInvested(item) {
+  const extraCosts = (item.costs ?? []).reduce((s, c) => s + c.amount, 0);
+  return item.purchase_price + extraCosts;
+}
+
 async function loadPortfolio() {
   const items = await api('/api/portfolio').catch(() => []);
   const held = items.filter((i) => !i.sold_at);
   const sold = items.filter((i) => i.sold_at);
 
-  const totalInvested = items.reduce((s, i) => s + i.purchase_price, 0);
+  const allInvested = items.reduce((s, i) => s + totalInvested(i), 0);
   const totalRevenue = sold.reduce((s, i) => s + (i.sold_price ?? 0), 0);
-  const totalCostOfSold = sold.reduce((s, i) => s + i.purchase_price, 0);
-  const profit = totalRevenue - totalCostOfSold;
+  const profit = sold.reduce((s, i) => s + (i.sold_price ?? 0) - totalInvested(i), 0);
 
-  document.getElementById('port-invested').textContent = totalInvested ? totalInvested.toLocaleString('sv') + ' kr' : '–';
+  document.getElementById('port-invested').textContent = allInvested ? allInvested.toLocaleString('sv') + ' kr' : '–';
   document.getElementById('port-revenue').textContent = totalRevenue ? totalRevenue.toLocaleString('sv') + ' kr' : '–';
   const profitEl = document.getElementById('port-profit');
   if (sold.length) {
@@ -1645,38 +1897,150 @@ async function loadPortfolio() {
 
 function portfolioCard(item) {
   const thumb = item.image_url
-    ? `<img class="recent-thumb" src="${item.image_url}" alt="" loading="lazy" onerror="this.replaceWith(thumbPlaceholder())">`
-    : thumbPlaceholderHtml();
+    ? `<img class="pcard-img" src="${item.image_url}" alt="" loading="lazy" onerror="this.className='pcard-img-placeholder';this.outerHTML=\`<div class='pcard-img-placeholder'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.5'><rect x='3' y='3' width='18' height='18' rx='3'/><circle cx='8.5' cy='8.5' r='1.5'/><path d='M21 15l-5-5L5 21'/></svg></div>\`">`
+    : `<div class="pcard-img-placeholder"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg></div>`;
 
   const dateStr = item.purchased_at ? new Date(item.purchased_at).toLocaleDateString('sv-SE') : '–';
+  const costs = item.costs ?? [];
+  const extraTotal = costs.reduce((s, c) => s + c.amount, 0);
+  const invested = item.purchase_price + extraTotal;
+
+  const costsRows = costs.map((c) =>
+    `<div class="pcard-row"><span class="pcard-row-label">${escAttr(c.description)}</span><span class="pcard-row-value muted">${c.amount.toLocaleString('sv')} kr</span></div>`
+  ).join('');
+
+  const showInvested = costs.length > 0;
 
   let resultHtml;
   if (item.sold_at) {
-    const p = (item.sold_price ?? 0) - item.purchase_price;
+    const p = (item.sold_price ?? 0) - invested;
     const sign = p >= 0 ? '+' : '';
     const cls = p >= 0 ? 'profit-positive' : 'profit-negative';
     resultHtml = `
-      <span class="profit-badge ${cls}">${sign}${p.toLocaleString('sv')} kr</span>
-      <span class="profit-sold-price">Såld: ${(item.sold_price ?? 0).toLocaleString('sv')} kr</span>`;
+      <div class="pcard-result">
+        <span class="profit-badge ${cls}">${sign}${p.toLocaleString('sv')} kr</span>
+        <span class="profit-sold-price">Såld: ${(item.sold_price ?? 0).toLocaleString('sv')} kr</span>
+      </div>`;
   } else {
     resultHtml = `
-      <span class="profit-badge profit-held">I lager</span>
-      <button class="btn-sell" data-id="${item.id}" data-title="${escAttr(item.title)}" onclick="openSellDialog(this, event)">Markera såld</button>`;
+      <div class="pcard-result">
+        <span class="profit-badge profit-held">I lager</span>
+        <button class="btn-sell" data-id="${item.id}" data-title="${escAttr(item.title)}" onclick="openSellDialog(this, event)">Markera såld</button>
+      </div>`;
   }
 
+  const itemJson = escAttr(JSON.stringify(item));
   return `<div class="portfolio-card">
-    ${thumb}
-    <div class="portfolio-info">
-      <div class="portfolio-title" title="${escAttr(item.title)}">${item.title ?? 'Okänd annons'}</div>
-      <div class="portfolio-meta">
-        <span class="chip ${platformChipClass(item.platform)} recent-platform">${item.platform}</span>
-        ${item.watch_query ? `<span class="portfolio-date">${item.watch_query}</span>` : ''}
-        <span class="portfolio-date">${dateStr}</span>
+    <div class="pcard-top">
+      ${thumb}
+      <div class="pcard-body">
+        <div class="pcard-header">
+          <span class="pcard-title" title="${escAttr(item.title)}">${item.title ?? 'Okänd annons'}</span>
+          <span class="chip ${platformChipClass(item.platform)} recent-platform" style="flex-shrink:0">${item.platform}</span>
+        </div>
+        <div class="pcard-date">${dateStr}${item.watch_query ? ` · ${item.watch_query}` : ''}</div>
+        <div class="pcard-rows">
+          <div class="pcard-row"><span class="pcard-row-label">Inköpspris</span><span class="pcard-row-value">${item.purchase_price.toLocaleString('sv')} kr</span></div>
+          ${costsRows}
+          ${showInvested ? `<hr class="pcard-divider"><div class="pcard-row pcard-invested"><span class="pcard-row-label">Totalt investerat</span><span class="pcard-row-value">${invested.toLocaleString('sv')} kr</span></div>` : ''}
+        </div>
+        ${item.notes ? `<div class="pcard-notes">${escAttr(item.notes)}</div>` : ''}
       </div>
-      <div class="portfolio-buy-price">Köpt för ${item.purchase_price.toLocaleString('sv')} kr</div>
     </div>
-    <div class="portfolio-result">${resultHtml}</div>
+    <div class="pcard-footer">
+      ${resultHtml}
+      <div class="pcard-actions">
+        <button class="btn-edit-portfolio" data-item="${itemJson}" onclick="openPortfolioEdit(this)">Ändra</button>
+      </div>
+    </div>
   </div>`;
+}
+
+// ── Portfolio edit ──
+let editImageData = null;
+let editCosts = [];
+
+function renderEditCosts() {
+  const list = document.getElementById('pedit-costs-list');
+  if (editCosts.length === 0) {
+    list.innerHTML = '<div class="cost-empty">Inga extrakostnader.</div>';
+    return;
+  }
+  list.innerHTML = `<div class="cost-list">${editCosts.map((c, i) => `
+    <div class="cost-row">
+      <span class="cost-desc" title="${escAttr(c.description)}">${escAttr(c.description)}</span>
+      <span class="cost-amount">${Number(c.amount).toLocaleString('sv')} kr</span>
+      <button type="button" class="cost-remove" onclick="removeEditCost(${i})">×</button>
+    </div>`).join('')}</div>`;
+}
+
+function addEditCost() {
+  const desc = document.getElementById('pedit-cost-desc').value.trim();
+  const amount = parseInt(document.getElementById('pedit-cost-amount').value, 10);
+  if (!desc || !amount || amount < 0) return;
+  editCosts.push({ description: desc, amount });
+  document.getElementById('pedit-cost-desc').value = '';
+  document.getElementById('pedit-cost-amount').value = '';
+  renderEditCosts();
+}
+
+function removeEditCost(index) {
+  editCosts.splice(index, 1);
+  renderEditCosts();
+}
+
+function openPortfolioEdit(btn) {
+  const item = JSON.parse(btn.dataset.item);
+  editImageData = null;
+  editCosts = (item.costs ?? []).map((c) => ({ description: c.description, amount: c.amount }));
+  document.getElementById('pedit-id').value = item.id;
+  document.getElementById('pedit-title').textContent = item.title ?? 'Okänd annons';
+  document.getElementById('pedit-purchase-price').value = item.purchase_price ?? '';
+  document.getElementById('pedit-sold-price').value = item.sold_price ?? '';
+  document.getElementById('pedit-notes').value = item.notes ?? '';
+  document.getElementById('pedit-cost-desc').value = '';
+  document.getElementById('pedit-cost-amount').value = '';
+  document.getElementById('pedit-image-file').value = '';
+  renderEditCosts();
+  const wrap = document.getElementById('pedit-thumb-wrap');
+  wrap.innerHTML = item.image_url
+    ? `<img class="recent-thumb" src="${escAttr(item.image_url)}" alt="" loading="lazy" onerror="this.replaceWith(thumbPlaceholder())">`
+    : thumbPlaceholderHtml();
+  document.getElementById('portfolio-edit-dialog').showModal();
+}
+
+function onEditImagePick(input) {
+  const file = input.files[0];
+  if (!file) { editImageData = null; return; }
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    editImageData = e.target.result.split(',')[1];
+    document.getElementById('pedit-thumb-wrap').innerHTML =
+      `<img class="recent-thumb" src="${e.target.result}" alt="">`;
+  };
+  reader.readAsDataURL(file);
+}
+
+async function submitPortfolioEdit(event) {
+  event.preventDefault();
+  const id = document.getElementById('pedit-id').value;
+  const soldVal = document.getElementById('pedit-sold-price').value.trim();
+  const body = {
+    purchase_price: parseInt(document.getElementById('pedit-purchase-price').value, 10),
+    sold_price: soldVal ? parseInt(soldVal, 10) : null,
+    notes: document.getElementById('pedit-notes').value.trim() || null,
+    costs: editCosts,
+  };
+  if (editImageData) body.image_data = editImageData;
+  await api(`/api/portfolio/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  document.getElementById('portfolio-edit-dialog').close();
+  editImageData = null;
+  toast('Sparat.');
+  await loadPortfolio();
 }
 
 init().catch((err) => toast(err.message));

@@ -69,9 +69,12 @@ export async function fetchListingPageDetails(url, headers = {}) {
 
     const detailText = extractRelevantDetailText($);
 
+    const imageUrl = $('meta[property="og:image"]').attr('content') || null;
+
     return {
       description,
       detailText,
+      imageUrl,
       metadata: {
         pageTitle: title || null,
       },

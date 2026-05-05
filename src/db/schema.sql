@@ -42,6 +42,16 @@ CREATE TABLE IF NOT EXISTS portfolio (
   sold_at TEXT
 );
 
+-- Extra kostnader kopplade till portfolio-poster
+CREATE TABLE IF NOT EXISTS portfolio_costs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  portfolio_id INTEGER NOT NULL,
+  description TEXT NOT NULL,
+  amount INTEGER NOT NULL,
+  created_at TEXT DEFAULT (datetime('now')),
+  FOREIGN KEY (portfolio_id) REFERENCES portfolio(id) ON DELETE CASCADE
+);
+
 -- App-inställningar (AI prompt, modell, flaggor, etc.)
 CREATE TABLE IF NOT EXISTS settings (
   key TEXT PRIMARY KEY,

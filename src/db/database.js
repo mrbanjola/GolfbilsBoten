@@ -78,6 +78,17 @@ function runMigrations() {
     }
   }
 
+  const portfolioCols = db.prepare("PRAGMA table_info(portfolio)").all().map(r => r.name);
+  const portfolioMigrations = [
+    { col: 'notes', sql: 'ALTER TABLE portfolio ADD COLUMN notes TEXT' },
+  ];
+  for (const { col, sql } of portfolioMigrations) {
+    if (!portfolioCols.includes(col)) {
+      db.exec(sql);
+      console.log(`[DB] Migration: lade till kolumn "portfolio.${col}"`);
+    }
+  }
+
   seedDefaultSettings();
 }
 
@@ -275,11 +286,52 @@ export function markSold(id, soldPrice) {
 }
 
 export function getPortfolio() {
-  return db.prepare('SELECT * FROM portfolio ORDER BY purchased_at DESC').all();
+  const items = db.prepare('SELECT * FROM portfolio ORDER BY purchased_at DESC').all();
+  const allCosts = db.prepare('SELECT * FROM portfolio_costs ORDER BY created_at ASC').all();
+  const costMap = new Map();
+  for (const c of allCosts) {
+    if (!costMap.has(c.portfolio_id)) costMap.set(c.portfolio_id, []);
+    costMap.get(c.portfolio_id).push(c);
+  }
+  return items.map((item) => ({ ...item, costs: costMap.get(item.id) ?? [] }));
+}
+
+export function replacePortfolioCosts(portfolioId, costs) {
+  db.prepare('DELETE FROM portfolio_costs WHERE portfolio_id = ?').run(portfolioId);
+  const insert = db.prepare('INSERT INTO portfolio_costs (portfolio_id, description, amount) VALUES (?, ?, ?)');
+  for (const c of costs) {
+    insert.run(portfolioId, String(c.description), Number(c.amount));
+  }
 }
 
 export function updatePortfolioImageUrl(id, imageUrl) {
   db.prepare('UPDATE portfolio SET image_url = ? WHERE id = ?').run(imageUrl, id);
+}
+
+export function updatePortfolioItem(id, updates = {}) {
+  const { purchasePrice, soldPrice, imageUrl } = updates;
+  const parts = [];
+  const values = [];
+  if ('purchasePrice' in updates) {
+    parts.push('purchase_price = ?');
+    values.push(purchasePrice ?? null);
+  }
+  if ('soldPrice' in updates) {
+    parts.push('sold_price = ?');
+    values.push(soldPrice ?? null);
+    parts.push(soldPrice ? "sold_at = COALESCE(sold_at, datetime('now'))" : 'sold_at = NULL');
+  }
+  if ('imageUrl' in updates) {
+    parts.push('image_url = ?');
+    values.push(updates.imageUrl ?? null);
+  }
+  if ('notes' in updates) {
+    parts.push('notes = ?');
+    values.push(updates.notes ?? null);
+  }
+  if (parts.length === 0) return;
+  values.push(id);
+  db.prepare(`UPDATE portfolio SET ${parts.join(', ')} WHERE id = ?`).run(...values);
 }
 
 function serializeSettingValue(value) {

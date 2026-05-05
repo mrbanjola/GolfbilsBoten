@@ -3,8 +3,9 @@ import basicAuth from 'express-basic-auth';
 import { existsSync, writeFileSync, statSync, mkdirSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import { getWatchesList, addWatch, removeWatch, updateWatch, getAiSettings, updateAiSettings, getStats, addPurchase, markSold, getPortfolio, updatePortfolioImageUrl } from './db/database.js';
+import { getWatchesList, addWatch, removeWatch, updateWatch, getAiSettings, updateAiSettings, getStats, addPurchase, markSold, getPortfolio, updatePortfolioImageUrl, updatePortfolioItem, replacePortfolioCosts } from './db/database.js';
 import { LOCATIONS_LIST, CATEGORIES_LIST } from './constants.js';
+import { fetchListingPageDetails } from './adapters/detail-fetch.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -28,6 +29,18 @@ function validateAiSettings(settings) {
     return 'Timeout måste vara minst 1000 ms.';
   if ('batch_size' in settings && (!Number.isInteger(settings.batch_size) || settings.batch_size < 1 || settings.batch_size > 25))
     return 'Batch size måste vara mellan 1 och 25.';
+  return null;
+}
+
+function getPlatformFromUrl(url) {
+  if (url.includes('blocket.se'))    return 'blocket';
+  if (url.includes('tradera.com'))   return 'tradera';
+  if (url.includes('klaravik.se'))   return 'klaravik';
+  if (url.includes('auctionet.com')) return 'auctionet';
+  if (url.includes('junora.se'))     return 'junora';
+  if (url.includes('budi.se'))       return 'budi';
+  if (url.includes('blinto.se'))     return 'blinto';
+  if (url.includes('facebook.com'))  return 'facebook';
   return null;
 }
 
@@ -147,13 +160,35 @@ export function startServer(port, callbacks) {
 
   app.use('/portfolio-images', express.static(join(callbacks.dataDir, 'portfolio-images')));
 
+  app.post('/api/portfolio/prefetch', async (req, res) => {
+    const { url } = req.body;
+    if (!url) return res.status(400).json({ error: 'url krävs' });
+    const platform = getPlatformFromUrl(url);
+    try {
+      const { metadata, imageUrl } = await fetchListingPageDetails(url);
+      res.json({ platform, title: metadata.pageTitle ?? null, imageUrl: imageUrl ?? null });
+    } catch {
+      res.json({ platform, title: null, imageUrl: null });
+    }
+  });
+
   app.post('/api/portfolio', async (req, res) => {
-    const { listing_id, platform, title, url, image_url, watch_query, purchase_price } = req.body;
+    const { listing_id, platform, title, url, image_url, image_data, watch_query, purchase_price } = req.body;
     if (!listing_id || !platform) return res.status(400).json({ error: 'listing_id och platform krävs' });
     const price = Number(purchase_price);
     if (!Number.isInteger(price) || price < 0) return res.status(400).json({ error: 'purchase_price måste vara ett positivt heltal' });
     const id = addPurchase({ listingId: listing_id, platform, title, url, imageUrl: image_url ?? null, watchQuery: watch_query, purchasePrice: price });
-    if (image_url) {
+    if (image_data) {
+      try {
+        const dir = join(callbacks.dataDir, 'portfolio-images');
+        mkdirSync(dir, { recursive: true });
+        const buffer = Buffer.from(image_data, 'base64');
+        writeFileSync(join(dir, `${id}.jpg`), buffer);
+        updatePortfolioImageUrl(id, `/portfolio-images/${id}.jpg`);
+      } catch (err) {
+        console.warn(`[Portfolio] Kunde inte spara uppladdad bild för #${id}: ${err.message}`);
+      }
+    } else if (image_url) {
       try {
         const localPath = await downloadPortfolioImage(image_url, id, callbacks.dataDir);
         updatePortfolioImageUrl(id, localPath);
@@ -170,6 +205,39 @@ export function startServer(port, callbacks) {
     if (!Number.isInteger(price) || price < 0) return res.status(400).json({ error: 'sold_price måste vara ett positivt heltal' });
     const ok = markSold(id, price);
     if (!ok) return res.status(404).json({ error: 'Portfolio-post hittades inte' });
+    res.json({ ok: true });
+  });
+
+  app.patch('/api/portfolio/:id', async (req, res) => {
+    const id = parseInt(req.params.id, 10);
+    const { purchase_price, sold_price, notes, image_data, costs } = req.body;
+    const updates = {};
+    if ('purchase_price' in req.body) {
+      const p = Number(purchase_price);
+      if (!Number.isInteger(p) || p < 0) return res.status(400).json({ error: 'purchase_price måste vara ett positivt heltal' });
+      updates.purchasePrice = p;
+    }
+    if ('sold_price' in req.body) {
+      updates.soldPrice = sold_price ? Number(sold_price) : null;
+    }
+    if ('notes' in req.body) {
+      updates.notes = notes || null;
+    }
+    if (image_data) {
+      try {
+        const dir = join(callbacks.dataDir, 'portfolio-images');
+        mkdirSync(dir, { recursive: true });
+        const buffer = Buffer.from(image_data, 'base64');
+        writeFileSync(join(dir, `${id}.jpg`), buffer);
+        updates.imageUrl = `/portfolio-images/${id}.jpg`;
+      } catch (err) {
+        console.warn(`[Portfolio] Kunde inte spara redigerad bild för #${id}: ${err.message}`);
+      }
+    }
+    updatePortfolioItem(id, updates);
+    if (Array.isArray(costs)) {
+      replacePortfolioCosts(id, costs.filter((c) => c.description && Number(c.amount) > 0));
+    }
     res.json({ ok: true });
   });
 
