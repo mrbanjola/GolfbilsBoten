@@ -730,6 +730,8 @@
     text-decoration: none;
     color: inherit;
     transition: all .15s;
+    overflow: hidden;
+    min-width: 0;
   }
 
   .recent-card:hover {
