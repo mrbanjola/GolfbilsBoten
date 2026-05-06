@@ -10,12 +10,63 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const DEFAULT_LOCATION_ID = '110611878960213';
 // Max antal detaljsidor att besöka per poll-cykel (varje sida tar ~3 sek)
 const MAX_DETAIL_FETCHES = 10;
+// Stäng webbläsaren efter denna tid utan aktivitet
+const BROWSER_IDLE_MS = 5 * 60 * 1000;
+
+const LAUNCH_ARGS = [
+  '--no-sandbox',
+  '--disable-setuid-sandbox',
+  '--disable-dev-shm-usage',
+  '--disable-gpu',
+  '--no-zygote',
+  '--single-process',
+  '--disable-extensions',
+  '--disable-background-networking',
+];
 
 export class FacebookAdapter extends BaseAdapter {
   constructor(claudeApiKey, dataDir, delayMs = 1000) {
     super('facebook');
     this.authFile = join(dataDir, 'facebook-auth.json');
     this.delayMs = delayMs;
+    this._browser = null;
+    this._context = null;
+    this._idleTimer = null;
+  }
+
+  async _getContext() {
+    clearTimeout(this._idleTimer);
+
+    if (!this._browser?.isConnected()) {
+      this._browser = await chromium.launch({ headless: true, args: LAUNCH_ARGS });
+      this._context = await this._browser.newContext({
+        storageState: this.authFile,
+        viewport: { width: 1440, height: 900 },
+        userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+      });
+
+      // Blockera bilder, media, fonter och CSS — sparar 100-150 MB per sidladdning
+      await this._context.route('**/*', (route) => {
+        const t = route.request().resourceType();
+        if (['image', 'media', 'font', 'stylesheet'].includes(t)) route.abort();
+        else route.continue();
+      });
+
+      console.log('[Facebook] Webbläsare startad');
+    }
+
+    this._idleTimer = setTimeout(() => this._closeBrowser(), BROWSER_IDLE_MS);
+    return this._context;
+  }
+
+  async _closeBrowser() {
+    clearTimeout(this._idleTimer);
+    if (this._browser) {
+      await this._browser.close().catch(() => {});
+      this._browser = null;
+      this._context = null;
+      console.log('[Facebook] Webbläsare stängd (idle)');
+    }
   }
 
   async search(watch) {
@@ -28,14 +79,10 @@ export class FacebookAdapter extends BaseAdapter {
     const url = `https://www.facebook.com/marketplace/${locationId}/search/?daysSinceListed=1&query=${encodeURIComponent(watch.query)}&exact=false`;
     console.log(`[Facebook] Söker: ${watch.query}`);
 
-    const browser = await chromium.launch({ headless: true });
+    let page = null;
     try {
-      const context = await browser.newContext({
-        storageState: this.authFile,
-        viewport: { width: 1440, height: 900 },
-        userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-      });
-      const page = await context.newPage();
+      const context = await this._getContext();
+      page = await context.newPage();
 
       await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
 
@@ -118,7 +165,7 @@ export class FacebookAdapter extends BaseAdapter {
           location: detail.location ?? '',
           url: href,
           imageUrl: undefined,
-          metadata: { description: detail.description },
+          description: detail.description ?? null,
         });
       }
 
@@ -127,12 +174,11 @@ export class FacebookAdapter extends BaseAdapter {
       console.error(`[Facebook] Fel vid sökning för "${watch.query}":`, err.message);
       return [];
     } finally {
-      await browser.close();
+      await page?.close().catch(() => {});
     }
   }
 
   // Besöker en enskild annons och extraherar data ur detaljsidans DOM.
-  // Beskrivningen läggs i metadata.description och används av AI-filtret.
   async fetchListingDetail(url, context) {
     const page = await context.newPage();
     try {
