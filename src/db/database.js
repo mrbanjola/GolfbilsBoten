@@ -72,6 +72,8 @@ function runMigrations() {
     { col: 'ending_soon_notified', sql: 'ALTER TABLE seen_ads ADD COLUMN ending_soon_notified INTEGER DEFAULT 0' },
     { col: 'notified', sql: 'ALTER TABLE seen_ads ADD COLUMN notified INTEGER DEFAULT 0' },
     { col: 'image_url', sql: 'ALTER TABLE seen_ads ADD COLUMN image_url TEXT' },
+    { col: 'condition', sql: 'ALTER TABLE seen_ads ADD COLUMN condition TEXT' },
+    { col: 'tags', sql: 'ALTER TABLE seen_ads ADD COLUMN tags TEXT' },
   ];
   for (const { col, sql } of seenAdsMigrations) {
     if (!seenAdsCols.includes(col)) {
@@ -290,10 +292,11 @@ export function markEndingSoonNotified(listings, watchId) {
 
 export function markNotified(listings) {
   const stmt = db.prepare(
-    'UPDATE seen_ads SET notified = 1 WHERE id = ? AND platform = ?'
+    'UPDATE seen_ads SET notified = 1, condition = ?, tags = ? WHERE id = ? AND platform = ?'
   );
   for (const listing of listings) {
-    stmt.run(listing.id, listing.platform);
+    const tagsJson = listing.tags?.length ? JSON.stringify(listing.tags) : null;
+    stmt.run(listing.condition ?? null, tagsJson, listing.id, listing.platform);
   }
 }
 
@@ -317,7 +320,7 @@ export function getStats() {
   ).all();
 
   const recent = db.prepare(
-    'SELECT s.id, s.platform, s.title, s.price, s.url, s.image_url, s.first_seen_at, w.query as watch_query FROM seen_ads s LEFT JOIN watches w ON s.watch_id = w.id WHERE s.notified = 1 ORDER BY s.first_seen_at DESC LIMIT 30'
+    'SELECT s.id, s.platform, s.title, s.price, s.url, s.image_url, s.condition, s.tags, s.first_seen_at, w.query as watch_query FROM seen_ads s LEFT JOIN watches w ON s.watch_id = w.id WHERE s.notified = 1 ORDER BY s.first_seen_at DESC LIMIT 30'
   ).all();
 
   return { total, today, perPlatform, perDay, perWatch, recent };

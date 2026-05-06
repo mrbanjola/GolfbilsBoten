@@ -775,6 +775,7 @@
   .recent-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
   .recent-price { font-size: .85rem; font-weight: 700; color: var(--primary); white-space: nowrap; }
   .recent-time { font-size: .72rem; color: var(--text-4); white-space: nowrap; margin-right: auto; }
+  .recent-condition { font-size: .68rem; padding: 2px 7px; }
 
   /* ── Portfolio ── */
   .portfolio-list { display: grid; gap: 12px; }

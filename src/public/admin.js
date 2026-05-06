@@ -324,7 +324,13 @@ async function loadStats() {
     </div>`).join('') : '<div class="empty">Inga data ännu.</div>';
 
   // Recent
-  document.getElementById('stat-recent').innerHTML = s.recent.length ? s.recent.map((r) => `
+  document.getElementById('stat-recent').innerHTML = s.recent.length ? s.recent.map((r) => {
+    const tags = r.tags ? JSON.parse(r.tags) : [];
+    const conditionBadge = r.condition
+      ? `<span class="pcard-condition recent-condition" data-condition="${escAttr(r.condition)}">${CONDITION_EMOJI[r.condition] ?? '🏷️'} ${escAttr(conditionTags.find(c => c.data_name === r.condition)?.label ?? r.condition)}</span>`
+      : '';
+    const tagBadges = tags.map(label => `<span class="pcard-tag">${escAttr(label)}</span>`).join('');
+    return `
     <a class="recent-card" href="${r.url || '#'}" target="_blank" rel="noopener">
       ${r.image_url
         ? `<img class="recent-thumb" src="${r.image_url}" alt="" loading="lazy" onerror="this.replaceWith(thumbPlaceholder())">`
@@ -335,6 +341,7 @@ async function loadStats() {
           <span class="chip ${platformChipClass(r.platform)} recent-platform">${r.platform}</span>
           <span class="recent-price">${r.price ? r.price.toLocaleString('sv') + ' kr' : '–'}</span>
           <span class="recent-time">${timeAgo(r.first_seen_at)}</span>
+          ${conditionBadge}${tagBadges}
           <button class="btn-buy"
             data-id="${r.id}"
             data-platform="${r.platform}"
@@ -345,7 +352,8 @@ async function loadStats() {
             onclick="openBuyDialog(this, event)"><svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="6" y1="1" x2="6" y2="11"/><line x1="1" y1="6" x2="11" y2="6"/></svg> Köpt</button>
         </div>
       </div>
-    </a>`).join('') : '<div class="empty">Inga data ännu.</div>';
+    </a>`;
+  }).join('') : '<div class="empty">Inga data ännu.</div>';
 }
 
 // ── Import from URL ──
