@@ -16,10 +16,8 @@ const BROWSER_IDLE_MS = 5 * 60 * 1000;
 const LAUNCH_ARGS = [
   '--no-sandbox',
   '--disable-setuid-sandbox',
-  '--disable-dev-shm-usage',
+  '--disable-dev-shm-usage',  // kritisk på Linux/Docker — förhindrar /dev/shm-kraschar
   '--disable-gpu',
-  '--no-zygote',
-  '--single-process',
   '--disable-extensions',
   '--disable-background-networking',
 ];
