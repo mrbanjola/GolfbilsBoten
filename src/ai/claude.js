@@ -11,7 +11,7 @@ function buildSystemPrompt(aiSettings) {
   return `${aiSettings.system_prompt.trim()}${globalRules}
 
 Return JSON only with this exact shape:
-{"results":[{"id":"string","keep":true,"reason_code":"short_code","note":"optional short note","tags":["data_name"],"profit_estimate":{"low":5000,"high":18000,"rationale":"short"}}]}
+{"results":[{"id":"string","keep":true,"reason_code":"short_code","note":"optional short note","condition":"working","tags":["data_name"],"profit_estimate":{"low":5000,"high":18000,"rationale":"short"}}]}
 
 Rules:
 - Use only the provided listing data.
@@ -20,7 +20,8 @@ Rules:
 - If the query is broad, prefer inclusion unless the listing is clearly the wrong type of thing.
 - If the query is specific, require a closer match.
 - The note field is optional and should stay short.
-- tags: array of applicable data_name strings from the tag_registry provided in the payload. Only use data_names from the registry. Use [] if none clearly apply. Be conservative — only tag when the condition is evident from title or description.
+- condition: required string. Pick exactly one data_name from tag_registry.conditions based on the listing text and each condition's guidelines. Default to "untested" if genuinely unclear.
+- tags: array of applicable data_name strings from tag_registry.detail_tags. Only tag when the specific issue is evident from title or description. Use [] if none apply.
 - profit_estimate: only include if profit_context is provided and sold_items >= 2. Estimate low and high resale profit in SEK based on listing price vs avg_invested and any matching tags vs tag_insights. Set to null or omit if profit_context is absent or sold_items < 2.`;
 }
 
@@ -39,11 +40,14 @@ function classifyQueryScope(query) {
   return 'broad';
 }
 
-function buildUserPayload(watch, listings, tags = [], profitContext = null) {
+function buildUserPayload(watch, listings, tags = [], conditionTags = [], profitContext = null) {
   const queryScope = classifyQueryScope(watch.query);
 
   const payload = {
-    tag_registry: tags.map((t) => ({ data_name: t.data_name, label: t.label })),
+    tag_registry: {
+      conditions: conditionTags.map((t) => ({ data_name: t.data_name, label: t.label, guidelines: t.guidelines ?? null })),
+      detail_tags: tags.map((t) => ({ data_name: t.data_name, label: t.label, guidelines: t.guidelines ?? null })),
+    },
     watch: {
       id: watch.id,
       query: watch.query,
@@ -124,6 +128,7 @@ function parseClaudeResponse(text, expectedIds) {
     keep: Boolean(item.keep),
     reasonCode: typeof item.reason_code === 'string' ? item.reason_code : 'unknown',
     note: typeof item.note === 'string' ? item.note : '',
+    condition: typeof item.condition === 'string' ? item.condition : null,
     tags: Array.isArray(item.tags) ? item.tags.filter((t) => typeof t === 'string') : [],
     profitEstimate: item.profit_estimate && typeof item.profit_estimate.low === 'number' && typeof item.profit_estimate.high === 'number'
       ? { low: Number(item.profit_estimate.low), high: Number(item.profit_estimate.high), rationale: item.profit_estimate.rationale ?? '' }
@@ -140,7 +145,7 @@ function parseClaudeResponse(text, expectedIds) {
   return decisions;
 }
 
-export async function filterListingsWithClaude({ apiKey, aiSettings, watch, listings, tags = [], profitContext = null }) {
+export async function filterListingsWithClaude({ apiKey, aiSettings, watch, listings, tags = [], conditionTags = [], profitContext = null }) {
   if (!aiSettings.enabled || listings.length === 0) {
     return { approved: listings, decisions: [], skipped: true };
   }
@@ -169,7 +174,7 @@ export async function filterListingsWithClaude({ apiKey, aiSettings, watch, list
         messages: [
           {
             role: 'user',
-            content: JSON.stringify(buildUserPayload(watch, listings, tags, profitContext)),
+            content: JSON.stringify(buildUserPayload(watch, listings, tags, conditionTags, profitContext)),
           },
         ],
       }),

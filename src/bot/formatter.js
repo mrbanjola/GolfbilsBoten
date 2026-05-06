@@ -29,6 +29,14 @@ function fmtAuctionEnd(isoOrText) {
   }
 }
 
+const CONDITION_EMOJI = { working: '✅', has_issues: '⚠️', no_start: '🔴', untested: '❓' };
+
+function fmtCondition(listing) {
+  if (!listing.conditionLabel) return '';
+  const emoji = CONDITION_EMOJI[listing.condition] ?? '🏷️';
+  return `${emoji} ${listing.conditionLabel}\n`;
+}
+
 /**
  * Formaterar notis för en auktion som avslutas snart (< 1h).
  * @param {import('../adapters/base.js').ListingResult} listing
@@ -54,12 +62,13 @@ export function formatAuctionNotice(listing, watch) {
     reserveStr = '\n✅ Reservationspris uppnått';
   }
 
-  const tagsStr = listing.tags?.length ? `\n🏷️ ${listing.tags.join(' · ')}` : '';
+  const conditionStr = fmtCondition(listing);
+  const tagsStr = listing.tags?.length ? `🏷️ ${listing.tags.join(' · ')}\n` : '';
   const profitStr = listing.profitEstimate ? (() => {
     const pe = listing.profitEstimate;
     const low = pe.low >= 0 ? `+${pe.low.toLocaleString('sv')}` : pe.low.toLocaleString('sv');
     const high = pe.high >= 0 ? `+${pe.high.toLocaleString('sv')}` : pe.high.toLocaleString('sv');
-    return `\n💰 Potential: ${low}–${high} kr${pe.rationale ? ` · ${pe.rationale}` : ''}`;
+    return `💰 Potential: ${low}–${high} kr${pe.rationale ? ` · ${pe.rationale}` : ''}\n`;
   })() : '';
   return (
     `⏳ *Avslutas snart!*\n` +
@@ -67,7 +76,8 @@ export function formatAuctionNotice(listing, watch) {
     `*${listing.title}*\n` +
     `${priceStr} · ${bidStr}\n` +
     `📍 ${locationStr}\n` +
-    `⏰ ${endTimeStr}${timeLeftStr}${reserveStr}${tagsStr}${profitStr}\n\n` +
+    `⏰ ${endTimeStr}${timeLeftStr}${reserveStr}\n` +
+    `${conditionStr}${tagsStr}${profitStr}\n` +
     `${listing.url}`
   );
 }
@@ -89,6 +99,7 @@ export function formatNewListing(listing, watch) {
   const priceStr = listing.price != null ? fmtPrice(listing.price) : 'Pris saknas';
   const locationStr = listing.location || 'Okänd plats';
 
+  const conditionStr = fmtCondition(listing);
   const tagsStr = listing.tags?.length ? `🏷️ ${listing.tags.join(' · ')}\n` : '';
   const profitStr = listing.profitEstimate ? (() => {
     const pe = listing.profitEstimate;
@@ -102,7 +113,7 @@ export function formatNewListing(listing, watch) {
     `*${listing.title}*\n` +
     `${priceStr} · ${locationStr}\n` +
     `${platformLabel}\n` +
-    `${tagsStr}${profitStr}\n` +
+    `${conditionStr}${tagsStr}${profitStr}\n` +
     `${listing.url}`
   );
 }
@@ -269,6 +280,7 @@ export function formatHelp() {
     `*Ändra* — Ändra filter på en bevakning\n` +
     `*Ta bort* — Ta bort en bevakning\n` +
     `*Sök* — Tvinga en omedelbar sökning\n` +
+    `*Svartlista* — Visa/hantera global blacklist\n` +
     `*Hjälp* — Visa den här hjälpen\n\n` +
     `Tips: Skriv t.ex. "VW LT under 40000" för att bevaka med maxpris.`
   );

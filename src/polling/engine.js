@@ -1,5 +1,5 @@
 import cron from 'node-cron';
-import { getActiveWatches, getAiSettings, markInitialScanDone, getTags, getProfitHistory } from '../db/database.js';
+import { getActiveWatches, getAiSettings, markInitialScanDone, getTags, getConditionTags, getProfitHistory, getBlacklist } from '../db/database.js';
 import { BlocketAdapter } from '../adapters/blocket.js';
 import { TraderaAdapter } from '../adapters/tradera.js';
 import { KlaravikAdapter } from '../adapters/klaravik.js';
@@ -20,6 +20,11 @@ let lastAuctionPoll = 0;
 const AUCTION_POLL_INTERVAL_MS = 20 * 60 * 1000;
 let lastFacebookPoll = 0;
 const FACEBOOK_POLL_INTERVAL_MS = 10 * 60 * 1000;
+let lastTraderaPoll = 0;
+let traderaPollIntervalMs = 60 * 60 * 1000;
+let traderaDailyLimit = 90;
+let traderaCallsToday = 0;
+let traderaCallDate = '';
 let claudeApiKey = null;
 const INITIAL_SCAN_AI_LIMIT = 20;
 const AUCTION_PLATFORMS = new Set(['klaravik', 'blinto', 'auctionet', 'budi', 'junora']);
@@ -38,6 +43,8 @@ export function startPollingEngine(config, onNewListing, onInitialScan) {
   notifyCallback = onNewListing;
   summaryCallback = onInitialScan ?? null;
   claudeApiKey = config.claudeApiKey ?? null;
+  traderaPollIntervalMs = (config.traderaPollIntervalMinutes ?? 60) * 60 * 1000;
+  traderaDailyLimit = config.traderaDailyLimit ?? 90;
 
   adapters.set('blocket', new BlocketAdapter(config.blocketApiBase, config.pollDelayMs));
   adapters.set('klaravik', new KlaravikAdapter(config.pollDelayMs));
@@ -86,7 +93,8 @@ async function applyAiRelevanceFilter({ adapter, watch, listings, aiSettings }) 
   }
 
   const tags = getTags();
-  const tagLabelMap = new Map(tags.map((t) => [t.data_name, t.label]));
+  const conditionTags = getConditionTags();
+  const tagLabelMap = new Map([...tags, ...conditionTags].map((t) => [t.data_name, t.label]));
   const profitContext = watch.category ? getProfitHistory(watch.category) : null;
   const batchSize = Math.max(1, aiSettings.batch_size || listings.length);
   const approved = [];
@@ -102,6 +110,7 @@ async function applyAiRelevanceFilter({ adapter, watch, listings, aiSettings }) 
         watch,
         listings: enriched,
         tags,
+        conditionTags,
         profitContext,
       });
 
@@ -114,6 +123,10 @@ async function applyAiRelevanceFilter({ adapter, watch, listings, aiSettings }) 
           const decision = decisionMap.get(listing.id);
           const priceLabel = listing.price != null ? `${listing.price} ${listing.currency ?? 'SEK'}` : 'okant pris';
           if (decision?.keep) {
+            if (decision.condition) {
+              listing.condition = decision.condition;
+              listing.conditionLabel = tagLabelMap.get(decision.condition) ?? null;
+            }
             if (decision.tags?.length) {
               listing.tags = decision.tags.map((dn) => tagLabelMap.get(dn)).filter(Boolean);
             }
@@ -122,6 +135,7 @@ async function applyAiRelevanceFilter({ adapter, watch, listings, aiSettings }) 
             }
             console.log(
               `[Claude][Keep] "${watch.query}" - ${listing.id} - ${listing.title} - ${priceLabel} - ${decision.reasonCode}` +
+              `${decision.condition ? ` - [${decision.condition}]` : ''}` +
               `${decision.note ? ` - ${decision.note}` : ''}` +
               `${decision.tags?.length ? ` - [${decision.tags.join(', ')}]` : ''}` +
               `${decision.profitEstimate ? ` - 💰 ${decision.profitEstimate.low}–${decision.profitEstimate.high} kr` : ''}`
@@ -151,11 +165,13 @@ export async function runPollCycle({ manual = false } = {}) {
   if (watches.length === 0) return { totalNew: 0, manual };
 
   const aiSettings = getAiSettings();
+  const globalBlacklist = getBlacklist();
   const now = Date.now();
   const pollAuctions = manual || (now - lastAuctionPoll >= AUCTION_POLL_INTERVAL_MS);
   const pollFacebook = manual || (now - lastFacebookPoll >= FACEBOOK_POLL_INTERVAL_MS);
+  const pollTradera = manual || (now - lastTraderaPoll >= traderaPollIntervalMs);
 
-  console.log(`[Poller] Kor poll-cykel - ${watches.length} aktiva bevakningar${pollAuctions ? ' (inkl. auktioner)' : ''}${pollFacebook ? ' (inkl. Facebook)' : ''}`);
+  console.log(`[Poller] Kor poll-cykel - ${watches.length} aktiva bevakningar${pollAuctions ? ' (inkl. auktioner)' : ''}${pollTradera ? ' (inkl. Tradera)' : ''}${pollFacebook ? ' (inkl. Facebook)' : ''}`);
   console.log(`[Claude] Installningar - enabled=${aiSettings.enabled} model=${aiSettings.model} batch=${aiSettings.batch_size} timeout=${aiSettings.timeout_ms} apiKey=${claudeApiKey ? 'yes' : 'no'}`);
   let totalNew = 0;
 
@@ -164,7 +180,17 @@ export async function runPollCycle({ manual = false } = {}) {
 
     for (const platformName of platforms) {
       if (platformName === 'facebook' && !pollFacebook) continue;
-      if (platformName !== 'blocket' && platformName !== 'facebook' && !pollAuctions) continue;
+      if (platformName === 'tradera') {
+        if (!pollTradera) continue;
+        const today = new Date().toISOString().slice(0, 10);
+        if (traderaCallDate !== today) { traderaCallDate = today; traderaCallsToday = 0; }
+        if (traderaCallsToday >= traderaDailyLimit) {
+          console.log(`[Poller] Tradera dagsgräns (${traderaDailyLimit}) nådd — hoppar över "${watch.query}"`);
+          continue;
+        }
+        traderaCallsToday++;
+      }
+      if (platformName !== 'blocket' && platformName !== 'facebook' && platformName !== 'tradera' && !pollAuctions) continue;
 
       const adapter = adapters.get(platformName);
       if (!adapter) {
@@ -174,7 +200,7 @@ export async function runPollCycle({ manual = false } = {}) {
 
       try {
         const raw = await adapter.search(watch);
-        const filtered = applyAllFilters(raw, watch);
+        const filtered = applyAllFilters(raw, watch, globalBlacklist);
 
         if (!watch.initial_scan_done) {
           markAllSeen(filtered, watch.id);
@@ -250,6 +276,7 @@ export async function runPollCycle({ manual = false } = {}) {
 
   if (pollAuctions) lastAuctionPoll = now;
   if (pollFacebook) lastFacebookPoll = now;
+  if (pollTradera) lastTraderaPoll = now;
 
   if (totalNew > 0) {
     console.log(`[Poller] Cykel klar - ${totalNew} nya annonser totalt`);

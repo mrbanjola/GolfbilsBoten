@@ -10,6 +10,8 @@ export const config = {
   dataDir: resolve(process.env.DATA_DIR ?? './data'),
   traderaAppId: process.env.TRADERA_APP_ID || null,
   traderaAppKey: process.env.TRADERA_APP_KEY || null,
+  traderaPollIntervalMinutes: parseInt(process.env.TRADERA_POLL_INTERVAL_MINUTES ?? '60', 10),
+  traderaDailyLimit: parseInt(process.env.TRADERA_DAILY_LIMIT ?? '90', 10),
   claudeApiKey: process.env.CLAUDE_API_KEY || null,
   adminUser: process.env.ADMIN_USER || 'admin',
   adminPass: process.env.ADMIN_PASS || null,

@@ -8,6 +8,8 @@ async function api(url, options = {}) {
 }
 
 let portfolioCategories = [];
+let conditionTags = [];
+const CONDITION_EMOJI = { working: '✅', has_issues: '⚠️', no_start: '🔴', untested: '❓' };
 
 async function init() {
   const constants = await api('/api/constants');
@@ -20,7 +22,8 @@ async function init() {
   document.getElementById('pedit-category').insertAdjacentHTML('beforeend', catOpts);
   document.getElementById('new-category').insertAdjacentHTML('beforeend', catOpts);
   document.getElementById('edit-category').insertAdjacentHTML('beforeend', catOpts);
-  await Promise.all([loadWatches(), loadAiSettings(), loadFacebookStatus()]);
+  conditionTags = await api('/api/tags/conditions').catch(() => []);
+  await Promise.all([loadWatches(), loadAiSettings(), loadFacebookStatus(), loadBlacklist()]);
 }
 
 async function loadAiSettings() {
@@ -454,11 +457,58 @@ function getPlatformFromUrlClient(url) {
   return null;
 }
 
+// ── Blacklist ──
+
+async function loadBlacklist() {
+  const words = await api('/api/settings/blacklist').catch(() => []);
+  const chips = document.getElementById('blacklist-chips');
+  if (!chips) return;
+  if (words.length === 0) {
+    chips.innerHTML = '<span style="font-size:.78rem;color:var(--text-4)">Ingen blacklist ännu.</span>';
+    return;
+  }
+  chips.innerHTML = words.map((w) =>
+    `<span class="tag-chip blacklist-chip">${escHtml(w)}<button type="button" class="tag-chip-del" onclick="deleteBlacklistWord('${escAttr(w)}')" title="Ta bort">×</button></span>`
+  ).join('');
+}
+
+async function addBlacklistWord(event) {
+  event.preventDefault();
+  const input = document.getElementById('blacklist-input');
+  const word = input.value.trim().toLowerCase();
+  if (!word) return;
+  await api('/api/settings/blacklist', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ word }) });
+  input.value = '';
+  toast(`"${word}" tillagd i blacklist.`);
+  await loadBlacklist();
+}
+
+async function deleteBlacklistWord(word) {
+  await api(`/api/settings/blacklist/${encodeURIComponent(word)}`, { method: 'DELETE' });
+  toast(`"${word}" borttagen från blacklist.`);
+  await loadBlacklist();
+}
+
 // ── Tag registry ──
 let allTags = [];
 
 async function loadTags() {
-  allTags = await api('/api/tags').catch(() => []);
+  [allTags, conditionTags] = await Promise.all([
+    api('/api/tags').catch(() => []),
+    api('/api/tags/conditions').catch(() => []),
+  ]);
+
+  const condEl = document.getElementById('condition-registry-list');
+  if (condEl) {
+    condEl.innerHTML = conditionTags.map((t) => `
+      <div class="condition-registry-row">
+        <span class="condition-badge" data-condition="${escAttr(t.data_name)}">${CONDITION_EMOJI[t.data_name] ?? '🏷️'} ${escAttr(t.label)}</span>
+        <input type="text" class="condition-guidelines-input" value="${escAttr(t.guidelines ?? '')}"
+          placeholder="AI-riktlinje..."
+          onchange="saveConditionGuidelines('${escAttr(t.data_name)}', this.value)">
+      </div>`).join('');
+  }
+
   const chips = document.getElementById('tag-registry-chips');
   if (!chips) return;
   if (allTags.length === 0) {
@@ -470,14 +520,25 @@ async function loadTags() {
   ).join('');
 }
 
+async function saveConditionGuidelines(dataName, guidelines) {
+  await api(`/api/tags/${encodeURIComponent(dataName)}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ guidelines: guidelines.trim() || null }),
+  });
+  toast('Riktlinje sparad.');
+}
+
 async function addTagToRegistry(event) {
   event.preventDefault();
   const data_name = document.getElementById('tag-new-name').value.trim();
   const label = document.getElementById('tag-new-label').value.trim();
+  const guidelines = document.getElementById('tag-new-guidelines').value.trim() || null;
   if (!data_name || !label) return;
-  await api('/api/tags', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ data_name, label }) });
+  await api('/api/tags', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ data_name, label, guidelines }) });
   document.getElementById('tag-new-name').value = '';
   document.getElementById('tag-new-label').value = '';
+  document.getElementById('tag-new-guidelines').value = '';
   toast('Tagg tillagd.');
   await loadTags();
 }
@@ -496,6 +557,10 @@ let currentPortfolioItems = [];
 
 function escAttr(s) {
   return (s ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+}
+
+function escHtml(s) {
+  return (s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
 function openBuyDialog(btn, event) {
@@ -742,7 +807,8 @@ function portfolioCard(item) {
           ${showInvested ? `<hr class="pcard-divider"><div class="pcard-row pcard-invested"><span class="pcard-row-label">Totalt investerat</span><span class="pcard-row-value">${invested.toLocaleString('sv')} kr</span></div>` : ''}
         </div>
         ${item.notes ? `<div class="pcard-notes">${escAttr(item.notes)}</div>` : ''}
-        ${(item.category || (item.tags ?? []).length) ? `<div class="pcard-tags">
+        ${(item.condition || item.category || (item.tags ?? []).length) ? `<div class="pcard-tags">
+          ${item.condition ? `<span class="pcard-condition" data-condition="${escAttr(item.condition)}">${CONDITION_EMOJI[item.condition] ?? '🏷️'} ${escAttr(conditionTags.find(c=>c.data_name===item.condition)?.label ?? item.condition)}</span>` : ''}
           ${item.category ? `<span class="pcard-category">${escAttr(portfolioCategories.find(c=>c.value===item.category)?.label ?? item.category)}</span>` : ''}
           ${(item.tags ?? []).map(dn => `<span class="pcard-tag">${escAttr(allTags.find(t=>t.data_name===dn)?.label ?? dn)}</span>`).join('')}
         </div>` : ''}
@@ -899,6 +965,13 @@ function openPortfolioEdit(btn) {
   document.getElementById('pedit-cost-amount').value = '';
   document.getElementById('pedit-image-file').value = '';
   renderEditCosts();
+  document.getElementById('pedit-condition-list').innerHTML = conditionTags.map((t) =>
+    `<label class="condition-radio-label">
+      <input type="radio" name="pedit-condition" value="${escAttr(t.data_name)}"${item.condition === t.data_name ? ' checked' : ''}>
+      <span>${CONDITION_EMOJI[t.data_name] ?? '🏷️'} ${escAttr(t.label)}</span>
+    </label>`
+  ).join('');
+
   const itemTags = new Set(item.tags ?? []);
   document.getElementById('pedit-tags-list').innerHTML = allTags.map((t) =>
     `<label class="tag-checkbox-label">
@@ -929,12 +1002,14 @@ async function submitPortfolioEdit(event) {
   event.preventDefault();
   const id = document.getElementById('pedit-id').value;
   const soldVal = document.getElementById('pedit-sold-price').value.trim();
+  const selectedCondition = document.querySelector('[name="pedit-condition"]:checked')?.value || null;
   const selectedTags = [...document.querySelectorAll('[name="pedit-tag"]:checked')].map((el) => el.value);
   const body = {
     purchase_price: parseInt(document.getElementById('pedit-purchase-price').value, 10),
     sold_price: soldVal ? parseInt(soldVal, 10) : null,
     notes: document.getElementById('pedit-notes').value.trim() || null,
     category: document.getElementById('pedit-category').value || null,
+    condition: selectedCondition,
     tags: selectedTags,
     costs: editCosts,
   };

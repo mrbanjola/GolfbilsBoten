@@ -3,7 +3,7 @@ import basicAuth from 'express-basic-auth';
 import { existsSync, writeFileSync, statSync, mkdirSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import { getWatchesList, addWatch, removeWatch, updateWatch, getAiSettings, updateAiSettings, getStats, addPurchase, markSold, getPortfolio, updatePortfolioImageUrl, updatePortfolioItem, replacePortfolioCosts, createBundle, getBundles, markBundleSold, updateBundle, dissolveBundle, getTags, addTag, deleteTag, setPortfolioTags, getPortfolioAnalytics } from './db/database.js';
+import { getWatchesList, addWatch, removeWatch, updateWatch, getAiSettings, updateAiSettings, getStats, addPurchase, markSold, getPortfolio, updatePortfolioImageUrl, updatePortfolioItem, replacePortfolioCosts, createBundle, getBundles, markBundleSold, updateBundle, dissolveBundle, getTags, getConditionTags, addTag, updateTagGuidelines, deleteTag, setPortfolioTags, getPortfolioAnalytics, getBlacklist, addBlacklistWord, removeBlacklistWord } from './db/database.js';
 import { LOCATIONS_LIST, CATEGORIES_LIST, PORTFOLIO_CATEGORIES } from './constants.js';
 import { fetchListingPageDetails } from './adapters/detail-fetch.js';
 
@@ -218,7 +218,7 @@ export function startServer(port, callbacks) {
 
   app.patch('/api/portfolio/:id', async (req, res) => {
     const id = parseInt(req.params.id, 10);
-    const { purchase_price, sold_price, notes, image_data, costs, tags, category } = req.body;
+    const { purchase_price, sold_price, notes, image_data, costs, tags, category, condition } = req.body;
     const updates = {};
     if ('purchase_price' in req.body) {
       const p = Number(purchase_price);
@@ -243,6 +243,7 @@ export function startServer(port, callbacks) {
       }
     }
     if ('category' in req.body) updates.category = category || null;
+    if ('condition' in req.body) updates.condition = condition || null;
     updatePortfolioItem(id, updates);
     if (Array.isArray(costs)) {
       replacePortfolioCosts(id, costs.filter((c) => c.description && Number(c.amount) > 0));
@@ -259,11 +260,21 @@ export function startServer(port, callbacks) {
     res.json(getTags());
   });
 
+  app.get('/api/tags/conditions', (_req, res) => {
+    res.json(getConditionTags());
+  });
+
   app.post('/api/tags', (req, res) => {
-    const { data_name, label, color } = req.body;
+    const { data_name, label, color, guidelines } = req.body;
     if (!data_name?.trim() || !label?.trim()) return res.status(400).json({ error: 'data_name och label krävs' });
     if (!/^[a-z][a-z0-9_]*$/.test(data_name.trim())) return res.status(400).json({ error: 'data_name får bara innehålla a-z, 0-9 och _' });
-    addTag(data_name.trim(), label.trim(), color?.trim() || null);
+    addTag(data_name.trim(), label.trim(), color?.trim() || null, guidelines?.trim() || null);
+    res.json({ ok: true });
+  });
+
+  app.patch('/api/tags/:data_name', (req, res) => {
+    const { guidelines } = req.body;
+    updateTagGuidelines(req.params.data_name, guidelines ?? null);
     res.json({ ok: true });
   });
 
@@ -308,6 +319,24 @@ export function startServer(port, callbacks) {
   app.delete('/api/portfolio/bundles/:id', (req, res) => {
     const id = parseInt(req.params.id, 10);
     dissolveBundle(id);
+    res.json({ ok: true });
+  });
+
+  // ── Blacklist ─────────────────────────────────────────────────────────────
+
+  app.get('/api/settings/blacklist', (_req, res) => {
+    res.json(getBlacklist());
+  });
+
+  app.post('/api/settings/blacklist', (req, res) => {
+    const word = String(req.body.word ?? '').trim().toLowerCase();
+    if (!word) return res.status(400).json({ error: 'word krävs' });
+    addBlacklistWord(word);
+    res.json({ ok: true });
+  });
+
+  app.delete('/api/settings/blacklist/:word', (req, res) => {
+    removeBlacklistWord(decodeURIComponent(req.params.word));
     res.json({ ok: true });
   });
 

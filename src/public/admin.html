@@ -82,6 +82,22 @@
     </form>
   </div>
 
+  <!-- Blacklist -->
+  <div class="card">
+    <div class="card-head">
+      <div class="card-icon" style="background:rgba(239,68,68,0.12);color:#dc2626">🚫</div>
+      <h2>Blacklist</h2>
+    </div>
+    <p class="hint" style="margin-bottom:12px">Ord som filtrerar bort annonser från <em>alla</em> bevakningar, före AI. Matchar mot rubrik och beskrivning.</p>
+    <div class="tag-chips" id="blacklist-chips">
+      <span style="font-size:.78rem;color:var(--text-4)">Laddar...</span>
+    </div>
+    <form onsubmit="addBlacklistWord(event)" style="display:flex;gap:6px;margin-top:10px">
+      <input id="blacklist-input" type="text" placeholder="Lägg till ord..." style="flex:1;font-size:.82rem" required>
+      <button type="submit" class="btn-primary btn-sm">+ Lägg till</button>
+    </form>
+  </div>
+
   <!-- Facebook-session -->
   <div class="card">
     <div class="card-head">
@@ -225,12 +241,18 @@
       <div class="card-icon" style="background:rgba(99,102,241,0.12);color:#4f46e5">🏷️</div>
       <h2>Taggar</h2>
     </div>
+    <div class="analytics-title" style="margin-bottom:8px">Kondition</div>
+    <div id="condition-registry-list" style="margin-bottom:18px">
+      <span style="font-size:.78rem;color:var(--text-4)">Laddar...</span>
+    </div>
+    <div class="analytics-title" style="margin-bottom:8px">Detaljtaggar</div>
     <div class="tag-chips" id="tag-registry-chips">
       <span style="font-size:.78rem;color:var(--text-4)">Laddar...</span>
     </div>
-    <form onsubmit="addTagToRegistry(event)" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px">
+    <form onsubmit="addTagToRegistry(event)" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
       <input id="tag-new-name" type="text" placeholder="data_name (t.ex. rust)" style="width:130px;font-size:.82rem" pattern="[a-z][a-z0-9_]*" title="Bara a-z, 0-9 och _">
       <input id="tag-new-label" type="text" placeholder="Etikett (t.ex. Rost)" style="flex:1;min-width:120px;font-size:.82rem" required>
+      <input id="tag-new-guidelines" type="text" placeholder="AI-riktlinje (valfri)" style="width:100%;font-size:.82rem;margin-top:4px">
       <button type="submit" class="btn-primary btn-sm">+ Lägg till</button>
     </form>
   </div>
@@ -510,7 +532,11 @@
         </select>
       </div>
       <div class="field">
-        <label>Taggar</label>
+        <label>Kondition</label>
+        <div id="pedit-condition-list" class="condition-radio-list"></div>
+      </div>
+      <div class="field">
+        <label>Detaljtaggar</label>
         <div id="pedit-tags-list" class="tag-checkbox-list"></div>
       </div>
       <div class="field">

@@ -49,14 +49,33 @@ export function applyExcludeFilter(listings, excludeWords) {
 }
 
 /**
+ * Filtrerar bort annonser vars titel eller beskrivning matchar globala blacklist-ord.
+ * @param {import('../adapters/base.js').ListingResult[]} listings
+ * @param {string[]} blacklistWords
+ * @returns {import('../adapters/base.js').ListingResult[]}
+ */
+export function applyBlacklistFilter(listings, blacklistWords) {
+  if (!blacklistWords || blacklistWords.length === 0) return listings;
+  const words = blacklistWords.map((w) => w.toLowerCase().trim()).filter(Boolean);
+  if (words.length === 0) return listings;
+
+  return listings.filter((l) => {
+    const text = `${l.title ?? ''} ${l.description ?? ''}`.toLowerCase();
+    return !words.some((word) => text.includes(word));
+  });
+}
+
+/**
  * Kör alla client-side filter på en lista annonser.
  * @param {import('../adapters/base.js').ListingResult[]} listings
  * @param {Object} watch
+ * @param {string[]} [globalBlacklist]
  * @returns {import('../adapters/base.js').ListingResult[]}
  */
-export function applyAllFilters(listings, watch) {
+export function applyAllFilters(listings, watch, globalBlacklist = []) {
   let result = listings;
   result = applyAdTypeFilter(result, watch.ad_type);
   result = applyExcludeFilter(result, watch.exclude_words);
+  result = applyBlacklistFilter(result, globalBlacklist);
   return result;
 }

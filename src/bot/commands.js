@@ -1,4 +1,4 @@
-import { addWatch, getWatchesList, getWatchByIndex, removeWatch, updateWatch } from '../db/database.js';
+import { addWatch, getWatchesList, getWatchByIndex, removeWatch, updateWatch, getBlacklist, addBlacklistWord, removeBlacklistWord } from '../db/database.js';
 import { sendMessage } from './whatsapp.js';
 import { formatWatchesList, formatWatchAdded, formatWatchRemoved, formatHelp } from './formatter.js';
 import { runPollCycle } from '../polling/engine.js';
@@ -335,6 +335,48 @@ export async function handleMessage({ jid, text }) {
     runPollCycle({ manual: true }).then(({ totalNew }) => {
       if (totalNew === 0) return sendMessage('Ingenting nytt hittades.');
     }).catch((err) => console.error('[Bot] Fel vid manuell sökning:', err));
+    return;
+  }
+
+  if (lower.startsWith('svartlista') || lower.startsWith('blacklist')) {
+    const rest = text.trim().slice(lower.startsWith('svartlista') ? 10 : 9).trim();
+    const restLower = rest.toLowerCase();
+
+    if (restLower.startsWith('lägg till ') || restLower.startsWith('add ')) {
+      const word = rest.slice(restLower.startsWith('lägg till ') ? 10 : 4).trim().toLowerCase();
+      if (!word) { await sendMessage('Ange ett ord att lägga till.'); return; }
+      addBlacklistWord(word);
+      await sendMessage(`🚫 "${word}" tillagd i blacklisten.`);
+      return;
+    }
+
+    if (restLower.startsWith('ta bort ') || restLower.startsWith('remove ')) {
+      const arg = rest.slice(restLower.startsWith('ta bort ') ? 8 : 7).trim();
+      const words = getBlacklist();
+      const num = parseInt(arg, 10);
+      const word = !isNaN(num) && num > 0 ? words[num - 1] : arg.toLowerCase();
+      if (!word) { await sendMessage('Ange ett ord eller nummer att ta bort.'); return; }
+      removeBlacklistWord(word);
+      await sendMessage(`✓ "${word}" borttagen från blacklisten.`);
+      return;
+    }
+
+    // Visa blacklisten
+    const words = getBlacklist();
+    if (words.length === 0) {
+      await sendMessage(
+        `🚫 *Blacklist — inga ord än.*\n\n` +
+        `Lägg till: *Svartlista lägg till <ord>*\n` +
+        `Ta bort: *Svartlista ta bort <ord/nr>*`
+      );
+    } else {
+      const list = words.map((w, i) => `${i + 1}. ${w}`).join('\n');
+      await sendMessage(
+        `🚫 *Blacklist (${words.length} ord):*\n\n${list}\n\n` +
+        `Lägg till: *Svartlista lägg till <ord>*\n` +
+        `Ta bort: *Svartlista ta bort <nr>*`
+      );
+    }
     return;
   }
 

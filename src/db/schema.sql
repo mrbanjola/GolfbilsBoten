@@ -85,3 +85,9 @@ CREATE TABLE IF NOT EXISTS settings (
   value TEXT NOT NULL,
   updated_at TEXT DEFAULT (datetime('now'))
 );
+
+-- Global blacklist: ord som filtrerar bort annonser från alla bevakningar
+CREATE TABLE IF NOT EXISTS global_blacklist (
+  word TEXT PRIMARY KEY,
+  added_at TEXT DEFAULT (datetime('now'))
+);

@@ -85,6 +85,7 @@ function runMigrations() {
     { col: 'notes',      sql: 'ALTER TABLE portfolio ADD COLUMN notes TEXT' },
     { col: 'bundle_id',  sql: 'ALTER TABLE portfolio ADD COLUMN bundle_id INTEGER REFERENCES portfolio_bundles(id)' },
     { col: 'category',   sql: 'ALTER TABLE portfolio ADD COLUMN category TEXT' },
+    { col: 'condition',  sql: 'ALTER TABLE portfolio ADD COLUMN condition TEXT' },
   ];
   for (const { col, sql } of portfolioMigrations) {
     if (!portfolioCols.includes(col)) {
@@ -93,24 +94,55 @@ function runMigrations() {
     }
   }
 
+  const tagsCols = db.prepare("PRAGMA table_info(tags)").all().map(r => r.name);
+  const tagsMigrations = [
+    { col: 'type',       sql: "ALTER TABLE tags ADD COLUMN type TEXT NOT NULL DEFAULT 'detail'" },
+    { col: 'guidelines', sql: 'ALTER TABLE tags ADD COLUMN guidelines TEXT' },
+  ];
+  for (const { col, sql } of tagsMigrations) {
+    if (!tagsCols.includes(col)) {
+      db.exec(sql);
+      console.log(`[DB] Migration: lade till kolumn "tags.${col}"`);
+    }
+  }
+
+  // Migrera no_start/untested från portfolio_tags → portfolio.condition
+  db.exec(`UPDATE portfolio SET condition = 'no_start' WHERE id IN (SELECT portfolio_id FROM portfolio_tags WHERE tag = 'no_start') AND condition IS NULL`);
+  db.exec(`UPDATE portfolio SET condition = 'untested' WHERE id IN (SELECT portfolio_id FROM portfolio_tags WHERE tag = 'untested') AND condition IS NULL`);
+  db.exec(`DELETE FROM portfolio_tags WHERE tag IN ('no_start', 'untested')`);
+  db.exec(`DELETE FROM tags WHERE data_name IN ('no_start', 'untested') AND (type IS NULL OR type = 'detail')`);
+
   seedDefaultSettings();
   seedDefaultTags();
+  seedDefaultConditions();
 }
 
 const DEFAULT_TAGS = [
   { data_name: 'bad_batteries',    label: 'Dåliga batterier' },
-  { data_name: 'no_start',         label: 'Startar inte' },
-  { data_name: 'untested',         label: 'Ej testad' },
   { data_name: 'broken_propeller', label: 'Trasig propeller' },
   { data_name: 'missing_parts',    label: 'Saknas delar' },
   { data_name: 'flat_tire',        label: 'Punktering' },
   { data_name: 'as_is',            label: 'Säljs i befintligt skick' },
 ];
 
+const DEFAULT_CONDITIONS = [
+  { data_name: 'working',    label: 'Fullt fungerande', guidelines: 'Annonsen nämner inga fel eller brister. Objektet beskrivs som fungerande.' },
+  { data_name: 'has_issues', label: 'Har brister',      guidelines: 'Annonsen nämner brister eller defekter men objektet startar/fungerar trots det.' },
+  { data_name: 'no_start',   label: 'Startar ej',       guidelines: 'Annonsen säger uttryckligen att objektet inte startar, inte fungerar eller är trasigt.' },
+  { data_name: 'untested',   label: 'Ej testad',        guidelines: 'Annonsen anger att objektet inte är testat eller att säljaren är osäker på skick.' },
+];
+
 function seedDefaultTags() {
-  const insert = db.prepare('INSERT OR IGNORE INTO tags (data_name, label) VALUES (?, ?)');
+  const insert = db.prepare("INSERT OR IGNORE INTO tags (data_name, label, type) VALUES (?, ?, 'detail')");
   for (const { data_name, label } of DEFAULT_TAGS) {
     insert.run(data_name, label);
+  }
+}
+
+function seedDefaultConditions() {
+  const insert = db.prepare("INSERT OR IGNORE INTO tags (data_name, label, type, guidelines) VALUES (?, ?, 'condition', ?)");
+  for (const { data_name, label, guidelines } of DEFAULT_CONDITIONS) {
+    insert.run(data_name, label, guidelines);
   }
 }
 
@@ -408,6 +440,10 @@ export function updatePortfolioItem(id, updates = {}) {
     parts.push('category = ?');
     values.push(updates.category ?? null);
   }
+  if ('condition' in updates) {
+    parts.push('condition = ?');
+    values.push(updates.condition ?? null);
+  }
   if (parts.length === 0) return;
   values.push(id);
   db.prepare(`UPDATE portfolio SET ${parts.join(', ')} WHERE id = ?`).run(...values);
@@ -494,15 +530,40 @@ export function getProfitHistory(category) {
 // ── Tags ───────────────────────────────────────────────────────────────────
 
 export function getTags() {
-  return db.prepare('SELECT * FROM tags ORDER BY label ASC').all();
+  return db.prepare("SELECT * FROM tags WHERE type = 'detail' ORDER BY label ASC").all();
 }
 
-export function addTag(dataName, label, color = null) {
-  db.prepare('INSERT OR REPLACE INTO tags (data_name, label, color) VALUES (?, ?, ?)').run(dataName, label, color);
+export function getConditionTags() {
+  return db.prepare(`
+    SELECT * FROM tags WHERE type = 'condition'
+    ORDER BY CASE data_name WHEN 'working' THEN 1 WHEN 'has_issues' THEN 2 WHEN 'no_start' THEN 3 WHEN 'untested' THEN 4 ELSE 5 END
+  `).all();
+}
+
+export function addTag(dataName, label, color = null, guidelines = null) {
+  db.prepare("INSERT OR REPLACE INTO tags (data_name, label, color, guidelines, type) VALUES (?, ?, ?, ?, 'detail')").run(dataName, label, color, guidelines);
+}
+
+export function updateTagGuidelines(dataName, guidelines) {
+  db.prepare('UPDATE tags SET guidelines = ? WHERE data_name = ?').run(guidelines ?? null, dataName);
 }
 
 export function deleteTag(dataName) {
-  db.prepare('DELETE FROM tags WHERE data_name = ?').run(dataName);
+  db.prepare("DELETE FROM tags WHERE data_name = ? AND type = 'detail'").run(dataName);
+}
+
+// ── Global Blacklist ───────────────────────────────────────────────────────
+
+export function getBlacklist() {
+  return db.prepare('SELECT word FROM global_blacklist ORDER BY added_at ASC').all().map((r) => r.word);
+}
+
+export function addBlacklistWord(word) {
+  db.prepare('INSERT OR IGNORE INTO global_blacklist (word) VALUES (?)').run(word.toLowerCase().trim());
+}
+
+export function removeBlacklistWord(word) {
+  db.prepare('DELETE FROM global_blacklist WHERE word = ?').run(word.toLowerCase().trim());
 }
 
 export function setPortfolioTags(portfolioId, tagDataNames) {
