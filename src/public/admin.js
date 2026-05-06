@@ -340,7 +340,7 @@ async function loadStats() {
         data-url="${escAttr(r.url)}"
         data-image-url="${escAttr(r.image_url)}"
         data-query="${escAttr(r.watch_query)}"
-        onclick="openBuyDialog(this, event)">Köpt</button>
+        onclick="openBuyDialog(this, event)"><svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="6" y1="1" x2="6" y2="11"/><line x1="1" y1="6" x2="11" y2="6"/></svg> Köpt</button>
     </a>`).join('') : '<div class="empty">Inga data ännu.</div>';
 }
 

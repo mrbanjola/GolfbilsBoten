@@ -832,11 +832,12 @@
   .btn-sell:hover { background: rgba(5,150,105,0.18); }
 
   .btn-buy {
-    font-size: .72rem; font-weight: 600; padding: 3px 10px; border-radius: 20px;
-    border: 1px solid rgba(5,150,105,0.28); background: rgba(5,150,105,0.1); color: var(--primary);
+    font-size: .72rem; font-weight: 600; padding: 5px 11px; border-radius: 8px;
+    border: 1.5px solid var(--primary); background: var(--primary); color: #fff;
     cursor: pointer; transition: all .15s; white-space: nowrap; flex-shrink: 0;
+    display: inline-flex; align-items: center; gap: 4px;
   }
-  .btn-buy:hover { background: rgba(5,150,105,0.18); }
+  .btn-buy:hover { background: #047857; border-color: #047857; }
 
   .btn-edit-portfolio {
     font-size: .7rem; font-weight: 600; padding: 2px 9px; border-radius: 20px;
