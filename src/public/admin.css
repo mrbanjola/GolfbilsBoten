@@ -768,9 +768,11 @@
     flex-shrink: 0;
   }
 
-  .recent-title { flex: 1; font-size: .85rem; font-weight: 600; color: var(--text); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .recent-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+  .recent-title { font-size: .85rem; font-weight: 600; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .recent-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
   .recent-price { font-size: .85rem; font-weight: 700; color: var(--primary); white-space: nowrap; }
-  .recent-time { font-size: .72rem; color: var(--text-4); white-space: nowrap; }
+  .recent-time { font-size: .72rem; color: var(--text-4); white-space: nowrap; margin-right: auto; }
 
   /* ── Portfolio ── */
   .portfolio-list { display: grid; gap: 12px; }
@@ -1022,15 +1024,9 @@
     .day-chart { gap: 2px; }
     .day-label { font-size: .55rem; }
 
-    .recent-card { flex-wrap: wrap; gap: 6px; }
-    .recent-thumb { width: 44px; height: 44px; order: -2; }
-    .recent-title { width: calc(100% - 56px); order: -1; white-space: normal; font-size: .82rem; }
-    .recent-platform { order: 0; }
-    .recent-price { order: 1; margin-left: auto; }
-    .recent-time { order: 2; }
-    .btn-buy { order: 3; margin-left: auto; }
+    .recent-thumb { width: 44px; height: 44px; }
 
-    .pcard-img, .pcard-img-placeholder { width: 60px; height: 60px; }
+.pcard-img, .pcard-img-placeholder { width: 60px; height: 60px; }
     .pcard-title { font-size: .85rem; }
     .pcard-footer { padding: 8px 12px; }
     .pcard-top { padding: 12px 12px 8px; gap: 10px; }
