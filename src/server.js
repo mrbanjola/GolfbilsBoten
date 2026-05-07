@@ -366,7 +366,7 @@ export function startServer(port, callbacks) {
   // ── Admin-panel ───────────────────────────────────────────────────────────
 
   app.get('/admin', (_req, res) => {
-    res.sendFile(join(__dirname, 'public', 'admin.html'));
+    res.sendFile(join(__dirname, 'public', 'index.html'));
   });
 
   app.listen(port, () => {

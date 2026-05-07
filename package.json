@@ -5,7 +5,9 @@
   "type": "module",
   "main": "src/index.js",
   "scripts": {
-    "start": "playwright install chromium && node src/index.js"
+    "start": "playwright install chromium && node src/index.js",
+    "dev:admin": "cd admin-ui && npm run dev",
+    "build:admin": "cd admin-ui && npm run build"
   },
   "dependencies": {
     "@whiskeysockets/baileys": "latest",
