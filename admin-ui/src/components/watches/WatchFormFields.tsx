@@ -1,19 +1,6 @@
 import type { Location, PortfolioCategory } from '../../api/types';
 
-const PLATFORM_OPTIONS = [
-  { value: 'blocket', label: 'Blocket' },
-  { value: 'tradera', label: 'Tradera' },
-  { value: 'klaravik', label: 'Klaravik' },
-  { value: 'blinto', label: 'Blinto' },
-  { value: 'auctionet', label: 'Auctionet' },
-  { value: 'budi', label: 'Budi' },
-  { value: 'junora', label: 'Junora' },
-  { value: 'facebook', label: 'Facebook' },
-  { value: 'blocket,tradera', label: 'Blocket + Tradera' },
-  { value: 'blocket,klaravik,blinto,auctionet,budi,junora', label: 'Blocket + Auktioner' },
-  { value: 'blocket,tradera,klaravik,blinto,auctionet,budi,junora', label: 'Alla utom Facebook' },
-  { value: 'blocket,tradera,klaravik,blinto,auctionet,budi,junora,facebook', label: 'Alla' },
-];
+const PLATFORMS = ['blocket', 'tradera', 'klaravik', 'blinto', 'auctionet', 'budi', 'junora', 'facebook'];
 
 export interface WatchFormValues {
   query: string;
@@ -77,9 +64,25 @@ export function WatchFormFields({ values, onChange, locations, categories, showQ
       </div>
       <div className="field">
         <label>Plattformar</label>
-        <select value={values.platforms} onChange={(e) => set('platforms', e.target.value)}>
-          {PLATFORM_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-        </select>
+        <div className="tag-checkbox-list">
+          {PLATFORMS.map((p) => {
+            const selected = values.platforms.split(',').map((s) => s.trim()).includes(p);
+            return (
+              <label key={p} className="tag-checkbox-label">
+                <input
+                  type="checkbox"
+                  checked={selected}
+                  onChange={() => {
+                    const current = new Set(values.platforms.split(',').map((s) => s.trim()).filter(Boolean));
+                    if (current.has(p)) current.delete(p); else current.add(p);
+                    set('platforms', [...current].join(','));
+                  }}
+                />
+                <span>{p.charAt(0).toUpperCase() + p.slice(1)}</span>
+              </label>
+            );
+          })}
+        </div>
       </div>
       <div className="field">
         <label>Kategori <span style={{ color: 'var(--text-4)', fontWeight: 400 }}>(för AI-kontext)</span></label>
