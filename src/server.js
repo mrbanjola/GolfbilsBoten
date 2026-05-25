@@ -3,7 +3,7 @@ import basicAuth from 'express-basic-auth';
 import { existsSync, writeFileSync, statSync, mkdirSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import { getWatchesList, addWatch, removeWatch, updateWatch, getAiSettings, updateAiSettings, getStats, addPurchase, markSold, getPortfolio, updatePortfolioImageUrl, updatePortfolioItem, replacePortfolioCosts, createBundle, getBundles, markBundleSold, updateBundle, dissolveBundle, getTags, getConditionTags, addTag, updateTagGuidelines, deleteTag, setPortfolioTags, getPortfolioAnalytics, getBlacklist, addBlacklistWord, removeBlacklistWord } from './db/database.js';
+import { getWatchesList, addWatch, removeWatch, updateWatch, getAiSettings, updateAiSettings, getStats, addPurchase, markSold, getPortfolio, updatePortfolioImageUrl, updatePortfolioItem, replacePortfolioCosts, deletePortfolioItem, createBundle, getBundles, markBundleSold, updateBundle, dissolveBundle, getTags, getConditionTags, addTag, updateTagGuidelines, deleteTag, setPortfolioTags, getPortfolioAnalytics, getBlacklist, addBlacklistWord, removeBlacklistWord } from './db/database.js';
 import { LOCATIONS_LIST, CATEGORIES_LIST, PORTFOLIO_CATEGORIES } from './constants.js';
 import { fetchListingPageDetails } from './adapters/detail-fetch.js';
 
@@ -280,6 +280,12 @@ export function startServer(port, callbacks) {
 
   app.delete('/api/tags/:data_name', (req, res) => {
     deleteTag(req.params.data_name);
+    res.json({ ok: true });
+  });
+
+  app.delete('/api/portfolio/:id', (req, res) => {
+    const id = parseInt(req.params.id, 10);
+    deletePortfolioItem(id);
     res.json({ ok: true });
   });
 

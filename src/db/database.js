@@ -452,6 +452,10 @@ export function updatePortfolioItem(id, updates = {}) {
   db.prepare(`UPDATE portfolio SET ${parts.join(', ')} WHERE id = ?`).run(...values);
 }
 
+export function deletePortfolioItem(id) {
+  db.prepare('DELETE FROM portfolio WHERE id = ?').run(id);
+}
+
 export function getPortfolioAnalytics() {
   const byCategory = db.prepare(`
     SELECT

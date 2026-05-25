@@ -68,6 +68,13 @@ export function PortfolioView({ conditionTags, allTags, onTagsLoaded }: Props) {
     load();
   }
 
+  async function handleDelete(item: PortfolioItem) {
+    if (!confirm(`Radera "${item.title ?? 'objektet'}" permanent? Detta kan inte ångras.`)) return;
+    await fetch(`/api/portfolio/${item.id}`, { method: 'DELETE' });
+    toast('Raderat.');
+    load();
+  }
+
   const unbundledUnsold = items.filter((i) => !i.bundle_id && !i.sold_at);
   const canBundle = unbundledUnsold.length >= 2;
 
@@ -124,16 +131,16 @@ export function PortfolioView({ conditionTags, allTags, onTagsLoaded }: Props) {
           ) : (
             <>
               {heldBundles.map((b) => <BundleCard key={b.id} bundle={b} onSell={setSellTarget} onDissolve={handleDissolve} />)}
-              {heldStandalone.map((i) => <PortfolioCard key={i.id} item={i} conditionTags={conditionTags} allTags={allTags} categories={categories} onSell={setSellTarget} onEdit={setEditItem} />)}
+              {heldStandalone.map((i) => <PortfolioCard key={i.id} item={i} conditionTags={conditionTags} allTags={allTags} categories={categories} onSell={setSellTarget} onEdit={setEditItem} onDelete={handleDelete} />)}
               {soldBundles.map((b) => <BundleCard key={b.id} bundle={b} onSell={setSellTarget} onDissolve={handleDissolve} />)}
-              {soldStandalone.map((i) => <PortfolioCard key={i.id} item={i} conditionTags={conditionTags} allTags={allTags} categories={categories} onSell={setSellTarget} onEdit={setEditItem} />)}
+              {soldStandalone.map((i) => <PortfolioCard key={i.id} item={i} conditionTags={conditionTags} allTags={allTags} categories={categories} onSell={setSellTarget} onEdit={setEditItem} onDelete={handleDelete} />)}
             </>
           )}
         </div>
       </div>
 
       <SellDialog target={sellTarget} onClose={() => setSellTarget(null)} onSaved={() => { setSellTarget(null); load(); }} />
-      <EditPortfolioDialog item={editItem} conditionTags={conditionTags} allTags={allTags} categories={categories} onClose={() => setEditItem(null)} onSaved={() => { setEditItem(null); load(); }} />
+      <EditPortfolioDialog key={editItem?.id ?? 0} item={editItem} conditionTags={conditionTags} allTags={allTags} categories={categories} onClose={() => setEditItem(null)} onSaved={() => { setEditItem(null); load(); }} />
       <CreateBundleDialog open={bundleOpen} items={unbundledUnsold} onClose={() => setBundleOpen(false)} onSaved={() => { setBundleOpen(false); load(); }} />
     </>
   );

@@ -15,9 +15,10 @@ interface Props {
   categories: PortfolioCategory[];
   onSell: (target: SellTarget) => void;
   onEdit: (item: PortfolioItem) => void;
+  onDelete: (item: PortfolioItem) => void;
 }
 
-export function PortfolioCard({ item, conditionTags, allTags, categories, onSell, onEdit }: Props) {
+export function PortfolioCard({ item, conditionTags, allTags, categories, onSell, onEdit, onDelete }: Props) {
   const costs = item.costs ?? [];
   const extraTotal = costs.reduce((s, c) => s + c.amount, 0);
   const invested = item.purchase_price + extraTotal;
@@ -96,6 +97,7 @@ export function PortfolioCard({ item, conditionTags, allTags, categories, onSell
         )}
         <div className="pcard-actions">
           <button className="btn-edit-portfolio" onClick={() => onEdit(item)}>Ändra</button>
+          <button className="btn-dissolve" onClick={() => onDelete(item)}>Radera</button>
         </div>
       </div>
     </div>
