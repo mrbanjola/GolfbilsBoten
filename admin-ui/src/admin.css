@@ -1063,3 +1063,7 @@
     .analytics-table { font-size: .78rem; }
     .analytics-table th, .analytics-table td { padding: 5px 8px; }
   }
+
+.ai-analysis-body { padding: 0 16px 16px; line-height: 1.65; }
+.ai-analysis-body p { margin: 0 0 6px; }
+.ai-analysis-body p:empty { display: none; }

@@ -289,6 +289,76 @@ export function startServer(port, callbacks) {
     res.json({ ok: true });
   });
 
+  app.post('/api/portfolio/analyze', async (_req, res) => {
+    const apiKey = process.env.CLAUDE_API_KEY;
+    if (!apiKey) return res.status(500).json({ error: 'CLAUDE_API_KEY saknas' });
+
+    const items = getPortfolio();
+    const held = items.filter(i => !i.sold_at && !i.bundle_id);
+    const sold = items.filter(i => i.sold_at);
+
+    const itemLines = held.map(i => {
+      const extraCosts = i.costs?.reduce((s, c) => s + c.amount, 0) ?? 0;
+      const total = i.purchase_price + extraCosts;
+      const costsStr = i.costs?.length ? ` (extrakostn: ${i.costs.map(c => `${c.description} ${c.amount}kr`).join(', ')})` : '';
+      const tagsStr = i.tags?.length ? ` | Skick/tags: ${i.tags.join(', ')}` : '';
+      const notesStr = i.notes ? ` | Notering: "${i.notes}"` : '';
+      return `- ${i.title} (${i.platform}, köpt ${i.purchase_price}kr${costsStr}, totalt investerat ${total}kr)${tagsStr}${notesStr}`;
+    }).join('\n');
+
+    const soldLines = sold.map(i => {
+      const extraCosts = i.costs?.reduce((s, c) => s + c.amount, 0) ?? 0;
+      const invested = i.purchase_price + extraCosts;
+      const profit = (i.sold_price ?? 0) - invested;
+      const margin = invested > 0 ? Math.round((profit / invested) * 100) : null;
+      const days = i.purchased_at && i.sold_at
+        ? Math.round((new Date(i.sold_at) - new Date(i.purchased_at)) / 86400000)
+        : null;
+      const costsStr = i.costs?.length ? ` [kostn: ${i.costs.map(c => `${c.description} ${c.amount}kr`).join(', ')}]` : '';
+      const notesStr = i.notes ? ` | Notering: "${i.notes}"` : '';
+      return `- ${i.title}: köpt ${invested}kr${costsStr} → sålt ${i.sold_price ?? '?'}kr (vinst ${profit >= 0 ? '+' : ''}${profit}kr${margin !== null ? `, ${margin}%` : ''}${days !== null ? `, ${days} dgr` : ''})${notesStr}`;
+    }).join('\n');
+
+    const soldSection = sold.length ? `\nSäljhistorik (${sold.length} objekt):\n${soldLines}` : '';
+
+    const prompt = `Du är en kunnig rådgivare för en flippare av begagnade båtprylar på svenska marknadsplatser (Blocket, Tradera, etc).
+
+Nuvarande lager (${held.length} objekt):
+${itemLines || '(tomt lager)'}
+${soldSection}
+
+Ge konkreta råd på svenska:
+1. Förslag på objekt som passar att sälja som paket (motivera kort varför)
+2. Vilka enskilda objekt bör prioriteras att sälja härnäst och varför
+3. Förväntat resultat / rimlig prissättning om möjligt, baserat på historisk marginal
+
+Var kortfattad och praktisk.`;
+
+    const settings = getAiSettings();
+    const model = settings?.model || 'claude-sonnet-4-20250514';
+
+    try {
+      const r = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({
+          model,
+          max_tokens: 1024,
+          messages: [{ role: 'user', content: prompt }],
+        }),
+      });
+      const data = await r.json();
+      const text = data?.content?.[0]?.text ?? 'Inget svar.';
+      res.json({ analysis: text });
+    } catch (e) {
+      res.status(500).json({ error: String(e) });
+    }
+  });
+
   // ── Portfolio bundles ─────────────────────────────────────────────────────
 
   app.get('/api/portfolio/bundles', (_req, res) => {

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { api } from '../../api/client';
 import { useToast } from '../../hooks/useToast';
 import { useConstants } from '../../hooks/useConstants';
-import type { PortfolioItem, Bundle, AnalyticsData, Tag } from '../../api/types';
+import type { PortfolioItem, Bundle, AnalyticsData, Tag, AnalyzeResponse } from '../../api/types';
 import { PortfolioCard, totalInvested } from './PortfolioCard';
 import { BundleCard } from './BundleCard';
 import { SellDialog, type SellTarget } from './SellDialog';
@@ -30,6 +30,8 @@ export function PortfolioView({ conditionTags, allTags, onTagsLoaded }: Props) {
   const [sellTarget, setSellTarget] = useState<SellTarget | null>(null);
   const [editItem, setEditItem] = useState<PortfolioItem | null>(null);
   const [bundleOpen, setBundleOpen] = useState(false);
+  const [analysis, setAnalysis] = useState<string | null>(null);
+  const [analyzing, setAnalyzing] = useState(false);
 
   async function load() {
     const [it, bu, an] = await Promise.all([
@@ -68,6 +70,19 @@ export function PortfolioView({ conditionTags, allTags, onTagsLoaded }: Props) {
     await fetch(`/api/portfolio/bundles/${id}`, { method: 'DELETE' });
     toast('Paket upplöst.');
     load();
+  }
+
+  async function handleAnalyze() {
+    setAnalyzing(true);
+    setAnalysis(null);
+    try {
+      const r = await api<AnalyzeResponse>('/api/portfolio/analyze', { method: 'POST' });
+      setAnalysis(r.analysis);
+    } catch {
+      toast('Kunde inte hämta analys.');
+    } finally {
+      setAnalyzing(false);
+    }
   }
 
   async function handleDelete(item: PortfolioItem) {
@@ -167,6 +182,30 @@ export function PortfolioView({ conditionTags, allTags, onTagsLoaded }: Props) {
       <SellDialog target={sellTarget} onClose={() => setSellTarget(null)} onSaved={() => { setSellTarget(null); load(); }} />
       <EditPortfolioDialog key={editItem?.id ?? 0} item={editItem} conditionTags={conditionTags} allTags={allTags} categories={categories} onClose={() => setEditItem(null)} onSaved={() => { setEditItem(null); load(); }} />
       <CreateBundleDialog open={bundleOpen} items={unbundledUnsold} onClose={() => setBundleOpen(false)} onSaved={() => { setBundleOpen(false); load(); }} />
+
+      <div className="card">
+        <div className="card-head">
+          <div className="card-icon ci-blue">🤖</div>
+          <h2>AI-analys</h2>
+          <button
+            className="btn-secondary btn-sm"
+            style={{ marginLeft: 'auto' }}
+            onClick={handleAnalyze}
+            disabled={analyzing || items.length === 0}
+          >
+            {analyzing ? 'Analyserar…' : '✨ Fråga Claude'}
+          </button>
+        </div>
+        {analysis ? (
+          <div className="ai-analysis-body">
+            {analysis.split('\n').map((line, i) => <p key={i}>{line}</p>)}
+          </div>
+        ) : (
+          <div className="empty" style={{ paddingTop: 12, paddingBottom: 16 }}>
+            {analyzing ? 'Hämtar analys…' : 'Klicka "Fråga Claude" för råd om ditt lager.'}
+          </div>
+        )}
+      </div>
     </>
   );
 }

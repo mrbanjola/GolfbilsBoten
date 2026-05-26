@@ -130,3 +130,7 @@ export interface PrefetchResult {
   title: string | null;
   imageUrl: string | null;
 }
+
+export interface AnalyzeResponse {
+  analysis: string;
+}
