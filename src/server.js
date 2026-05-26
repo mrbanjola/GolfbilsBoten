@@ -15,6 +15,7 @@ function normalizeAiSettings(body) {
   if ('model' in body) settings.model = String(body.model ?? '').trim();
   if ('system_prompt' in body) settings.system_prompt = String(body.system_prompt ?? '').trim();
   if ('global_rules' in body) settings.global_rules = String(body.global_rules ?? '').trim();
+  if ('bot_analysis_prompt' in body) settings.bot_analysis_prompt = String(body.bot_analysis_prompt ?? '').trim();
   if ('timeout_ms' in body) settings.timeout_ms = parseInt(body.timeout_ms, 10);
   if ('batch_size' in body) settings.batch_size = parseInt(body.batch_size, 10);
   return settings;

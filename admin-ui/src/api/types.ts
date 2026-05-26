@@ -34,6 +34,7 @@ export interface AiSettings {
   timeout_ms: number;
   system_prompt: string;
   global_rules: string;
+  bot_analysis_prompt: string;
 }
 
 export interface FacebookStatus {

@@ -416,6 +416,7 @@ export async function handleMessage({ jid, text, msg }) {
         model: settings?.model,
         listing: { url, ...details, pageTitle: details.metadata?.pageTitle },
         profitHistory: analytics,
+        botPrompt: settings?.bot_analysis_prompt,
       });
       await sendMessage(analysis);
     } catch (e) {

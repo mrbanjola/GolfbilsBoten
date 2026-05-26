@@ -25,6 +25,7 @@ const DEFAULT_AI_SETTINGS = Object.freeze({
   ].join('\n'),
   timeout_ms: 15000,
   batch_size: 8,
+  bot_analysis_prompt: '',
 });
 
 /**
@@ -604,7 +605,7 @@ export function getAiSettings() {
 }
 
 export function updateAiSettings(updates) {
-  const allowed = ['enabled', 'model', 'system_prompt', 'global_rules', 'timeout_ms', 'batch_size'];
+  const allowed = ['enabled', 'model', 'system_prompt', 'global_rules', 'timeout_ms', 'batch_size', 'bot_analysis_prompt'];
   const entries = Object.entries(updates).filter(([key]) => allowed.includes(key));
   if (entries.length === 0) return getAiSettings();
 

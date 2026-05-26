@@ -198,7 +198,7 @@ export async function filterListingsWithClaude({ apiKey, aiSettings, watch, list
   }
 }
 
-export async function analyzeListingForBot({ apiKey, model, listing, profitHistory }) {
+export async function analyzeListingForBot({ apiKey, model, listing, profitHistory, botPrompt }) {
   const { url, pageTitle, description, detailText } = listing;
 
   const soldRows = profitHistory?.byCategory?.filter((r) => r.sold > 0) ?? [];
@@ -215,7 +215,9 @@ export async function analyzeListingForBot({ apiKey, model, listing, profitHisto
     `URL: ${url}`,
   ].filter(Boolean).join('\n\n');
 
-  const prompt = `Du är en erfaren rådgivare för en flippare av begagnade båtprylar på svenska marknadsplatser.
+  const extraInstructions = botPrompt?.trim() ? `\nExtra instruktioner:\n${botPrompt.trim()}` : '';
+
+  const prompt = `Du är en erfaren rådgivare för en flippare av begagnade båtprylar på svenska marknadsplatser.${extraInstructions}
 
 Annons att bedöma:
 ${listingText}

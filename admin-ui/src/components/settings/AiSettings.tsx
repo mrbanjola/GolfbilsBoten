@@ -7,7 +7,7 @@ export function AiSettings() {
   const toast = useToast();
   const [s, setS] = useState<AiSettingsType>({
     enabled: false, model: '', batch_size: 8, timeout_ms: 15000,
-    system_prompt: '', global_rules: '',
+    system_prompt: '', global_rules: '', bot_analysis_prompt: '',
   });
 
   useEffect(() => {
@@ -62,6 +62,10 @@ export function AiSettings() {
           <div className="field full">
             <label>Globala regler</label>
             <textarea value={s.global_rules} onChange={(e) => setS({ ...s, global_rules: e.target.value })} placeholder="Regler som hjälper Claude att avgöra relevans..." />
+          </div>
+          <div className="field full">
+            <label>Bot-analys instruktioner</label>
+            <textarea value={s.bot_analysis_prompt} onChange={(e) => setS({ ...s, bot_analysis_prompt: e.target.value })} placeholder='T.ex. "Var försiktig och pessimistisk. Jag betalar alltid max 40% av förväntad intäkt. Räkna alltid in reparationskostnader."' />
           </div>
           <div className="full form-actions">
             <button type="submit" className="btn-primary">Spara AI-inställningar</button>
