@@ -92,8 +92,8 @@ export function PortfolioView({ conditionTags, allTags, onTagsLoaded }: Props) {
     load();
   }
 
-  const unbundledUnsold = items.filter((i) => !i.bundle_id && !i.sold_at);
-  const canBundle = unbundledUnsold.length >= 2;
+  const unbundledItems = items.filter((i) => !i.bundle_id);
+  const canBundle = unbundledItems.length >= 2;
 
   return (
     <>
@@ -181,7 +181,7 @@ export function PortfolioView({ conditionTags, allTags, onTagsLoaded }: Props) {
 
       <SellDialog target={sellTarget} onClose={() => setSellTarget(null)} onSaved={() => { setSellTarget(null); load(); }} />
       <EditPortfolioDialog key={editItem?.id ?? 0} item={editItem} conditionTags={conditionTags} allTags={allTags} categories={categories} onClose={() => setEditItem(null)} onSaved={() => { setEditItem(null); load(); }} />
-      <CreateBundleDialog open={bundleOpen} items={unbundledUnsold} onClose={() => setBundleOpen(false)} onSaved={() => { setBundleOpen(false); load(); }} />
+      <CreateBundleDialog open={bundleOpen} items={unbundledItems} onClose={() => setBundleOpen(false)} onSaved={() => { setBundleOpen(false); load(); }} />
 
       <div className="card">
         <div className="card-head">

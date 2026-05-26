@@ -55,8 +55,8 @@ export function CreateBundleDialog({ open, items, onClose, onSaved }: Props) {
               <label key={item.id} className="bundle-item-check">
                 <input type="checkbox" name="bundle-item" value={item.id} />
                 <span className="bic-mark"></span>
-                <span className="bic-title">{item.title ?? 'Okänd annons'}</span>
-                <span className="bic-price">{totalInvested(item).toLocaleString('sv')} kr</span>
+                <span className="bic-title">{item.title ?? 'Okänd annons'}{item.sold_at ? ' · Såld' : ''}</span>
+                <span className="bic-price">{totalInvested(item).toLocaleString('sv')} kr{item.sold_price ? ` → ${item.sold_price.toLocaleString('sv')} kr` : ''}</span>
               </label>
             ))}
           </div>
