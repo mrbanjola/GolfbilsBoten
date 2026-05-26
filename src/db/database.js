@@ -462,7 +462,7 @@ export function getPortfolioAnalytics() {
       COALESCE(p.category, '_none') AS category,
       COUNT(*) AS items,
       SUM(CASE WHEN p.sold_at IS NOT NULL THEN 1 ELSE 0 END) AS sold,
-      SUM(p.purchase_price + COALESCE(c.total, 0)) AS invested,
+      SUM(CASE WHEN p.sold_at IS NOT NULL THEN p.purchase_price + COALESCE(c.total, 0) ELSE 0 END) AS invested_sold,
       SUM(COALESCE(p.sold_price, 0)) AS revenue,
       ROUND(AVG(CASE WHEN p.sold_at IS NOT NULL
         THEN julianday(p.sold_at) - julianday(p.purchased_at) END)) AS avg_days
@@ -471,7 +471,7 @@ export function getPortfolioAnalytics() {
       ON c.portfolio_id = p.id
     WHERE p.bundle_id IS NULL
     GROUP BY COALESCE(p.category, '_none')
-    ORDER BY (SUM(COALESCE(p.sold_price, 0)) - SUM(p.purchase_price) - SUM(COALESCE(c.total, 0))) DESC
+    ORDER BY (SUM(COALESCE(p.sold_price, 0)) - SUM(CASE WHEN p.sold_at IS NOT NULL THEN p.purchase_price + COALESCE(c.total, 0) ELSE 0 END)) DESC
   `).all();
 
   const byTag = db.prepare(`
@@ -479,7 +479,7 @@ export function getPortfolioAnalytics() {
       t.data_name, t.label,
       COUNT(DISTINCT p.id) AS items,
       SUM(CASE WHEN p.sold_at IS NOT NULL THEN 1 ELSE 0 END) AS sold,
-      SUM(p.purchase_price + COALESCE(c.total, 0)) AS invested,
+      SUM(CASE WHEN p.sold_at IS NOT NULL THEN p.purchase_price + COALESCE(c.total, 0) ELSE 0 END) AS invested_sold,
       SUM(COALESCE(p.sold_price, 0)) AS revenue
     FROM portfolio_tags pt
     JOIN tags t ON t.data_name = pt.tag
@@ -487,7 +487,7 @@ export function getPortfolioAnalytics() {
     LEFT JOIN (SELECT portfolio_id, SUM(amount) AS total FROM portfolio_costs GROUP BY portfolio_id) c
       ON c.portfolio_id = p.id
     GROUP BY t.data_name, t.label
-    ORDER BY (SUM(COALESCE(p.sold_price, 0)) - SUM(p.purchase_price) - SUM(COALESCE(c.total, 0))) DESC
+    ORDER BY (SUM(COALESCE(p.sold_price, 0)) - SUM(CASE WHEN p.sold_at IS NOT NULL THEN p.purchase_price + COALESCE(c.total, 0) ELSE 0 END)) DESC
   `).all();
 
   return { byCategory, byTag };

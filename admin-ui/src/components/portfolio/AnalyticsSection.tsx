@@ -1,15 +1,17 @@
 import type { AnalyticsData, PortfolioCategory } from '../../api/types';
 
-function profitCell(invested: number, revenue: number) {
+function fmt(n: number) { return n.toLocaleString('sv') + ' kr'; }
+
+function profitCell(invested_sold: number, revenue: number) {
   if (!revenue) return <td>–</td>;
-  const p = revenue - invested;
+  const p = revenue - invested_sold;
   const cls = p > 0 ? 'profit-pos' : p < 0 ? 'profit-neg' : '';
-  return <td className={cls}>{p >= 0 ? '+' : ''}{p.toLocaleString('sv')} kr</td>;
+  return <td className={cls}>{p >= 0 ? '+' : ''}{fmt(p)}</td>;
 }
 
-function marginCell(invested: number, revenue: number) {
-  if (!revenue || !invested) return <td>–</td>;
-  const m = Math.round(((revenue - invested) / invested) * 100);
+function marginCell(invested_sold: number, revenue: number) {
+  if (!revenue || !invested_sold) return <td>–</td>;
+  const m = Math.round(((revenue - invested_sold) / invested_sold) * 100);
   const cls = m > 0 ? 'profit-pos' : m < 0 ? 'profit-neg' : '';
   return <td className={cls}>{m > 0 ? '+' : ''}{m}%</td>;
 }
@@ -37,19 +39,28 @@ export function AnalyticsSection({ analytics, categories }: Props) {
           <div className="analytics-scroll">
             <table className="analytics-table">
               <thead>
-                <tr><th>Kategori</th><th>Köp</th><th>Sålda</th><th>Investerat</th><th>Intäkt</th><th>Vinst</th><th>Marginal</th><th>Snitt tid</th></tr>
+                <tr>
+                  <th>Kategori</th>
+                  <th className="analytics-hide-xs">Köpta</th>
+                  <th>Sålda</th>
+                  <th>Inv. (sålda)</th>
+                  <th>Intäkt</th>
+                  <th>Vinst</th>
+                  <th className="analytics-hide-xs">Marginal</th>
+                  <th className="analytics-hide-xs">Snitt tid</th>
+                </tr>
               </thead>
               <tbody>
                 {byCategory.filter((r) => r.sold > 0).map((r, i) => (
                   <tr key={i}>
                     <td>{catLabel(r.category)}</td>
-                    <td>{r.items}</td>
+                    <td className="analytics-hide-xs">{r.items}</td>
                     <td>{r.sold}</td>
-                    <td>{r.invested.toLocaleString('sv')} kr</td>
-                    <td>{r.revenue.toLocaleString('sv')} kr</td>
-                    {profitCell(r.invested, r.revenue)}
-                    {marginCell(r.invested, r.revenue)}
-                    <td>{r.avg_days != null ? r.avg_days + ' dgr' : '–'}</td>
+                    <td>{fmt(r.invested_sold)}</td>
+                    <td>{fmt(r.revenue)}</td>
+                    {profitCell(r.invested_sold, r.revenue)}
+                    <td className="analytics-hide-xs">{marginCell(r.invested_sold, r.revenue)}</td>
+                    <td className="analytics-hide-xs">{r.avg_days != null ? r.avg_days + ' dgr' : '–'}</td>
                   </tr>
                 ))}
               </tbody>
@@ -63,17 +74,24 @@ export function AnalyticsSection({ analytics, categories }: Props) {
           <div className="analytics-scroll">
             <table className="analytics-table">
               <thead>
-                <tr><th>Tagg</th><th>Köp</th><th>Sålda</th><th>Investerat</th><th>Intäkt</th><th>Vinst</th></tr>
+                <tr>
+                  <th>Tagg</th>
+                  <th className="analytics-hide-xs">Köpta</th>
+                  <th>Sålda</th>
+                  <th>Inv. (sålda)</th>
+                  <th>Intäkt</th>
+                  <th>Vinst</th>
+                </tr>
               </thead>
               <tbody>
                 {byTag.filter((r) => r.sold > 0).map((r, i) => (
                   <tr key={i}>
                     <td>{r.label}</td>
-                    <td>{r.items}</td>
+                    <td className="analytics-hide-xs">{r.items}</td>
                     <td>{r.sold}</td>
-                    <td>{r.invested.toLocaleString('sv')} kr</td>
-                    <td>{r.revenue.toLocaleString('sv')} kr</td>
-                    {profitCell(r.invested, r.revenue)}
+                    <td>{fmt(r.invested_sold)}</td>
+                    <td>{fmt(r.revenue)}</td>
+                    {profitCell(r.invested_sold, r.revenue)}
                   </tr>
                 ))}
               </tbody>

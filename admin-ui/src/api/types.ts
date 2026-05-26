@@ -112,7 +112,7 @@ export interface CategoryAnalytics {
   category: string | null;
   items: number;
   sold: number;
-  invested: number;
+  invested_sold: number;
   revenue: number;
   avg_days: number | null;
 }
@@ -121,7 +121,7 @@ export interface TagAnalytics {
   label: string;
   items: number;
   sold: number;
-  invested: number;
+  invested_sold: number;
   revenue: number;
 }
 

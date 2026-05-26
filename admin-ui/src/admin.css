@@ -996,6 +996,33 @@
   .profit-pos { color: var(--primary); font-weight: 600; }
   .profit-neg { color: var(--danger); font-weight: 600; }
 
+  /* ── Portfolio summary stats ── */
+  .port-stats { display: flex; flex-direction: column; gap: 12px; }
+
+  .port-stats-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
+
+  .port-stats-sold {
+    position: relative;
+    padding-top: 6px;
+  }
+
+  .port-stats-sold-label {
+    position: absolute;
+    top: -4px;
+    left: 0;
+    font-size: .65rem;
+    font-weight: 800;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--text-4);
+  }
+
+  .port-stats-sold { grid-template-columns: repeat(4, 1fr); }
+
   /* ── Responsive ── */
   @media (max-width: 600px) {
     header { padding: 0 14px; }
@@ -1020,8 +1047,19 @@
 
     .recent-thumb { width: 44px; height: 44px; }
 
-.pcard-img, .pcard-img-placeholder { width: 60px; height: 60px; }
+    .pcard-img, .pcard-img-placeholder { width: 60px; height: 60px; }
     .pcard-title { font-size: .85rem; }
     .pcard-footer { padding: 8px 12px; }
     .pcard-top { padding: 12px 12px 8px; gap: 10px; }
+
+    /* Portfolio summary on mobile */
+    .port-stats-row { grid-template-columns: 1fr 1fr; }
+    .port-stats-sold { grid-template-columns: 1fr 1fr; }
+    .port-stats-sold-label { font-size: .6rem; }
+    .stat-value { font-size: 1.6rem; }
+
+    /* Analytics table: hide secondary columns */
+    .analytics-hide-xs { display: none; }
+    .analytics-table { font-size: .78rem; }
+    .analytics-table th, .analytics-table td { padding: 5px 8px; }
   }
