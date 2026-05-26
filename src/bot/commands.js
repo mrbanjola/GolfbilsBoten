@@ -128,7 +128,7 @@ function currentValueLabel(watch, field) {
  * Huvudfunktion — tar emot ett inkommande meddelande och hanterar kommandot.
  * @param {{ jid: string, text: string }} param0
  */
-export async function handleMessage({ jid, text }) {
+export async function handleMessage({ jid, text, msg }) {
   const session = getSession(jid);
   const lower = text.trim().toLowerCase();
 
