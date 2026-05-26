@@ -418,7 +418,8 @@ export async function handleMessage({ jid, text, msg }) {
         profitHistory: analytics,
         botPrompt: settings?.bot_analysis_prompt,
       });
-      await sendMessage(analysis);
+      const emoji = analysis.verdict === 'ja' ? '✅' : analysis.verdict === 'kanske' ? '🤔' : '❌';
+      await sendMessage(`${emoji} *Bedömning: ${analysis.verdict.toUpperCase()}*\n\n${analysis.text}`);
     } catch (e) {
       console.error('[Bot] claude kolla fel:', e);
       await sendMessage('Något gick fel vid analysen. Försök igen.');

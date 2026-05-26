@@ -107,13 +107,16 @@ export function formatNewListing(listing, watch) {
     const high = pe.high >= 0 ? `+${pe.high.toLocaleString('sv')}` : pe.high.toLocaleString('sv');
     return `💰 Potential: ${low}–${high} kr${pe.rationale ? ` · ${pe.rationale}` : ''}\n`;
   })() : '';
+  const analysisStr = listing.claudeAnalysis
+    ? `\n${listing.claudeVerdict === 'ja' ? '✅' : '🤔'} *Bedömning:*\n${listing.claudeAnalysis}\n`
+    : '';
   return (
     `🔔 *Ny träff!*\n` +
     `Bevakning: "${watch.query}"\n\n` +
     `*${listing.title}*\n` +
     `${priceStr} · ${locationStr}\n` +
     `${platformLabel}\n` +
-    `${conditionStr}${tagsStr}${profitStr}\n` +
+    `${conditionStr}${tagsStr}${profitStr}${analysisStr}\n` +
     `${listing.url}`
   );
 }
@@ -193,7 +196,8 @@ export function formatNewListingsBatch(listings, watch) {
       const bids = l.bidCount ? ` · ${l.bidCount} bud` : '';
       return `• *${l.title}*\n  ${price}${bids}${loc} · ${minsLeft} min kvar${tags}\n  ${l.url}`;
     }
-    return `• *${l.title}*\n  ${price}${loc} · ${platformLabel}${tags}\n  ${l.url}`;
+    const verdictMark = l.claudeVerdict === 'ja' ? ' ✅' : l.claudeVerdict === 'kanske' ? ' 🤔' : '';
+    return `• *${l.title}*${verdictMark}\n  ${price}${loc} · ${platformLabel}${tags}\n  ${l.url}`;
   });
   return header + '\n' + lines.join('\n\n');
 }

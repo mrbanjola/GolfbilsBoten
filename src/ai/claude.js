@@ -226,12 +226,15 @@ ${listingText}
 
 ${historyLines}
 
-Svara kortfattat på svenska:
-1. Värt att köpa? (ja/nej/kanske + motivering)
-2. Rimligt max-inköpspris
-3. Förväntat säljpris och marginal
+Börja ditt svar med exakt en av dessa rader (ingen annan text före):
+VERDICT: JA
+VERDICT: NEJ
+VERDICT: KANSKE
 
-Max 10 meningar totalt.`;
+Sedan kortfattad analys på svenska (max 8 meningar):
+1. Motivering till verdiktet
+2. Rimligt max-inköpspris
+3. Förväntat säljpris och marginal`;
 
   const r = await fetch(ANTHROPIC_API_URL, {
     method: 'POST',
@@ -248,5 +251,9 @@ Max 10 meningar totalt.`;
     signal: AbortSignal.timeout(20000),
   });
   const data = await r.json();
-  return data?.content?.[0]?.text ?? 'Inget svar från Claude.';
+  const raw = data?.content?.[0]?.text ?? '';
+  const match = raw.match(/^VERDICT:\s*(JA|NEJ|KANSKE)/im);
+  const verdict = match?.[1]?.toLowerCase() ?? 'kanske';
+  const text = raw.replace(/^VERDICT:.*(\r?\n)?/im, '').trim();
+  return { verdict, text };
 }
