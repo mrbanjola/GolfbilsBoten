@@ -39,6 +39,7 @@ function deepFind(obj, keys, maxDepth = 8, depth = 0) {
 function extractFromJsonLd($) {
   let price = null;
   let description = null;
+  let location = null;
 
   $('script[type="application/ld+json"]').each((_, el) => {
     try {
@@ -53,11 +54,16 @@ function extractFromJsonLd($) {
           const p = offer?.price ?? offer?.lowPrice;
           if (p !== undefined) price = Number(p);
         }
+        if (!location) {
+          const addr = item.seller?.address ?? item.availableAtOrFrom?.address ?? item.location;
+          if (typeof addr === 'string') location = addr;
+          else if (addr?.addressLocality) location = addr.addressLocality;
+        }
       }
     } catch { /* malformed JSON-LD, skip */ }
   });
 
-  return { price, description };
+  return { price, description, location };
 }
 
 function extractFromNextData($) {
@@ -69,9 +75,17 @@ function extractFromNextData($) {
     // 'amount' matches Blocket's price.amount field without false-positives from generic 'value'
     const rawPrice = deepFind(data, ['amount']);
     const price = rawPrice !== undefined ? Number(rawPrice) : null;
+    // location may be a string or an object with a name field (Blocket: location.name)
+    const rawLocation = deepFind(data, ['municipality', 'location']);
+    let location = null;
+    if (typeof rawLocation === 'string') location = rawLocation;
+    else if (rawLocation && typeof rawLocation === 'object') {
+      location = rawLocation.name ?? rawLocation.label ?? rawLocation.city ?? null;
+    }
     return {
       description: typeof description === 'string' && description.length > 20 ? description : null,
       price: price !== null && !isNaN(price) && price > 0 ? price : null,
+      location,
     };
   } catch {
     return {};
@@ -100,7 +114,7 @@ function extractRelevantDetailText($) {
 }
 
 export async function fetchListingPageDetails(url, headers = {}) {
-  if (!url) return { description: null, detailText: null, price: null, metadata: {} };
+  if (!url) return { description: null, detailText: null, price: null, location: null, metadata: {} };
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 15000);
@@ -145,11 +159,13 @@ export async function fetchListingPageDetails(url, headers = {}) {
     const imageUrl = $('meta[property="og:image"]').attr('content') || null;
 
     const price = jsonLd.price ?? nextData.price ?? null;
+    const location = jsonLd.location ?? nextData.location ?? null;
 
     return {
       description,
       detailText,
       price,
+      location,
       imageUrl,
       metadata: {
         pageTitle: title || null,

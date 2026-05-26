@@ -199,7 +199,7 @@ export async function filterListingsWithClaude({ apiKey, aiSettings, watch, list
 }
 
 export async function analyzeListingForBot({ apiKey, model, listing, profitHistory, botPrompt }) {
-  const { url, pageTitle, description, detailText, price } = listing;
+  const { url, pageTitle, description, detailText, price, location } = listing;
 
   const soldRows = profitHistory?.byCategory?.filter((r) => r.sold > 0) ?? [];
   const historyLines = soldRows.length
@@ -211,6 +211,7 @@ export async function analyzeListingForBot({ apiKey, model, listing, profitHisto
   const listingText = [
     pageTitle ? `Titel: ${pageTitle}` : null,
     price ? `Pris: ${price.toLocaleString('sv')} kr` : null,
+    location ? `Plats: ${location}` : null,
     description ? `Beskrivning: ${description}` : null,
     detailText ? `Annonstext (utdrag):\n${detailText.slice(0, 2000)}` : null,
     `URL: ${url}`,
