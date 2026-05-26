@@ -1,8 +1,10 @@
-import { addWatch, getWatchesList, getWatchByIndex, removeWatch, updateWatch, getBlacklist, addBlacklistWord, removeBlacklistWord } from '../db/database.js';
+import { addWatch, getWatchesList, getWatchByIndex, removeWatch, updateWatch, getBlacklist, addBlacklistWord, removeBlacklistWord, getAiSettings, getPortfolioAnalytics } from '../db/database.js';
 import { sendMessage } from './whatsapp.js';
 import { formatWatchesList, formatWatchAdded, formatWatchRemoved, formatHelp } from './formatter.js';
 import { runPollCycle } from '../polling/engine.js';
 import { LOCATIONS_LIST, CATEGORIES_LIST, findLocation } from '../constants.js';
+import { analyzeListingForBot } from '../ai/claude.js';
+import { fetchListingPageDetails } from '../adapters/detail-fetch.js';
 
 /**
  * State machine per grupp-JID.
@@ -382,6 +384,44 @@ export async function handleMessage({ jid, text }) {
 
   if (lower.startsWith('hjälp') || lower.startsWith('help')) {
     await sendMessage(formatHelp());
+    return;
+  }
+
+  if (lower.startsWith('claude kolla')) {
+    const quotedMsg = msg.message?.extendedTextMessage?.contextInfo?.quotedMessage;
+    if (!quotedMsg) {
+      await sendMessage('Svara på ett meddelande med en annons-länk för att använda "claude kolla".');
+      return;
+    }
+    const quotedText = quotedMsg.conversation || quotedMsg.extendedTextMessage?.text || '';
+    const urlMatch = quotedText.match(/https?:\/\/[^\s]+/);
+    if (!urlMatch) {
+      await sendMessage('Hittade ingen länk i det citerade meddelandet.');
+      return;
+    }
+    const url = urlMatch[0];
+    if (url.includes('facebook.com')) {
+      await sendMessage('Facebook-annonser stöds inte.');
+      return;
+    }
+    await sendMessage('⏳ Kollar annonsen med Claude...');
+    try {
+      const [details, analytics] = await Promise.all([
+        fetchListingPageDetails(url),
+        Promise.resolve(getPortfolioAnalytics()),
+      ]);
+      const settings = getAiSettings();
+      const analysis = await analyzeListingForBot({
+        apiKey: process.env.CLAUDE_API_KEY,
+        model: settings?.model,
+        listing: { url, ...details, pageTitle: details.metadata?.pageTitle },
+        profitHistory: analytics,
+      });
+      await sendMessage(analysis);
+    } catch (e) {
+      console.error('[Bot] claude kolla fel:', e);
+      await sendMessage('Något gick fel vid analysen. Försök igen.');
+    }
     return;
   }
 }

@@ -197,3 +197,52 @@ export async function filterListingsWithClaude({ apiKey, aiSettings, watch, list
     clearTimeout(timer);
   }
 }
+
+export async function analyzeListingForBot({ apiKey, model, listing, profitHistory }) {
+  const { url, pageTitle, description, detailText } = listing;
+
+  const soldRows = profitHistory?.byCategory?.filter((r) => r.sold > 0) ?? [];
+  const historyLines = soldRows.length
+    ? `Säljhistorik per kategori:\n${soldRows.map((r) =>
+        `- ${r.category ?? 'Okategoriserad'}: ${r.sold} sålda, snitt inv ${Math.round(r.invested_sold / r.sold)} kr, snitt intäkt ${Math.round(r.revenue / r.sold)} kr, snitt ${r.avg_days ?? '?'} dgr`
+      ).join('\n')}`
+    : 'Ingen säljhistorik ännu.';
+
+  const listingText = [
+    pageTitle ? `Titel: ${pageTitle}` : null,
+    description ? `Beskrivning: ${description}` : null,
+    detailText ? `Annonstext (utdrag):\n${detailText.slice(0, 2000)}` : null,
+    `URL: ${url}`,
+  ].filter(Boolean).join('\n\n');
+
+  const prompt = `Du är en erfaren rådgivare för en flippare av begagnade båtprylar på svenska marknadsplatser.
+
+Annons att bedöma:
+${listingText}
+
+${historyLines}
+
+Svara kortfattat på svenska:
+1. Värt att köpa? (ja/nej/kanske + motivering)
+2. Rimligt max-inköpspris
+3. Förväntat säljpris och marginal
+
+Max 10 meningar totalt.`;
+
+  const r = await fetch(ANTHROPIC_API_URL, {
+    method: 'POST',
+    headers: {
+      'x-api-key': apiKey,
+      'anthropic-version': ANTHROPIC_VERSION,
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: model || 'claude-sonnet-4-20250514',
+      max_tokens: 512,
+      messages: [{ role: 'user', content: prompt }],
+    }),
+    signal: AbortSignal.timeout(20000),
+  });
+  const data = await r.json();
+  return data?.content?.[0]?.text ?? 'Inget svar från Claude.';
+}
