@@ -69,6 +69,8 @@ export interface RecentItem {
   watch_query: string | null;
   condition: string | null;
   tags: string | null;
+  claude_verdict: 'ja' | 'nej' | 'kanske' | null;
+  claude_analysis: string | null;
 }
 
 export interface Cost {

@@ -75,6 +75,8 @@ function runMigrations() {
     { col: 'image_url', sql: 'ALTER TABLE seen_ads ADD COLUMN image_url TEXT' },
     { col: 'condition', sql: 'ALTER TABLE seen_ads ADD COLUMN condition TEXT' },
     { col: 'tags', sql: 'ALTER TABLE seen_ads ADD COLUMN tags TEXT' },
+    { col: 'claude_verdict', sql: 'ALTER TABLE seen_ads ADD COLUMN claude_verdict TEXT' },
+    { col: 'claude_analysis', sql: 'ALTER TABLE seen_ads ADD COLUMN claude_analysis TEXT' },
   ];
   for (const { col, sql } of seenAdsMigrations) {
     if (!seenAdsCols.includes(col)) {
@@ -301,6 +303,11 @@ export function markNotified(listings) {
   }
 }
 
+export function saveListingAnalysis(id, platform, verdict, analysis) {
+  db.prepare('UPDATE seen_ads SET claude_verdict = ?, claude_analysis = ? WHERE id = ? AND platform = ?')
+    .run(verdict, analysis ?? null, id, platform);
+}
+
 export function getStats() {
   const total = db.prepare('SELECT COUNT(*) as n FROM seen_ads').get().n;
 
@@ -321,7 +328,7 @@ export function getStats() {
   ).all();
 
   const recent = db.prepare(
-    'SELECT s.id, s.platform, s.title, s.price, s.url, s.image_url, s.condition, s.tags, s.first_seen_at, w.query as watch_query FROM seen_ads s LEFT JOIN watches w ON s.watch_id = w.id WHERE s.notified = 1 ORDER BY s.first_seen_at DESC LIMIT 30'
+    'SELECT s.id, s.platform, s.title, s.price, s.url, s.image_url, s.condition, s.tags, s.claude_verdict, s.claude_analysis, s.first_seen_at, w.query as watch_query FROM seen_ads s LEFT JOIN watches w ON s.watch_id = w.id WHERE s.notified = 1 ORDER BY s.first_seen_at DESC LIMIT 30'
   ).all();
 
   return { total, today, perPlatform, perDay, perWatch, recent };

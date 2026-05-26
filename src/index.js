@@ -7,6 +7,7 @@ import { handleMessage } from './bot/commands.js';
 import { startPollingEngine, runPollCycle } from './polling/engine.js';
 import { formatNewListing, formatNewListingsBatch, formatInitialScanSummary } from './bot/formatter.js';
 import { analyzeListingForBot } from './ai/claude.js';
+import { saveListingAnalysis } from './db/database.js';
 
 // ── Säkerställ att data-katalogen finns ────────────────────────────────────
 mkdirSync(config.dataDir, { recursive: true });
@@ -66,6 +67,7 @@ startPollingEngine(
         const r = results[i];
         if (r.status !== 'fulfilled') return true; // API-fel → skicka ändå
         const { verdict, text } = r.value;
+        saveListingAnalysis(l.id, l.platform, verdict, text);
         if (verdict === 'nej') return false;
         l.claudeVerdict = verdict;
         l.claudeAnalysis = text;

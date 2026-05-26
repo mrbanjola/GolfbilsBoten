@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { RecentItem, Tag } from '../../api/types';
 import { PlatformChip } from '../shared/PlatformChip';
 import { ConditionBadge } from '../shared/ConditionBadge';
@@ -28,7 +29,12 @@ interface Props {
 }
 
 export function RecentCard({ item, conditionTags, onBuy }: Props) {
+  const [showAnalysis, setShowAnalysis] = useState(false);
   const tags: string[] = item.tags ? JSON.parse(item.tags) : [];
+  const verdictLabel = item.claude_verdict === 'ja' ? '✅ JA'
+    : item.claude_verdict === 'kanske' ? '🤔 KANSKE'
+    : item.claude_verdict === 'nej' ? '❌ NEJ'
+    : null;
 
   function handleBuy(e: React.MouseEvent) {
     e.preventDefault();
@@ -68,10 +74,22 @@ export function RecentCard({ item, conditionTags, onBuy }: Props) {
           <span className="recent-time">{timeAgo(item.first_seen_at)}</span>
           {item.condition && <ConditionBadge condition={item.condition} conditionTags={conditionTags} className="pcard-condition recent-condition" />}
           {tags.map((tag) => <span key={tag} className="pcard-tag">{tag}</span>)}
+          {verdictLabel && <span className={`verdict-badge verdict-${item.claude_verdict}`}>{verdictLabel}</span>}
           <button className="btn-buy" onClick={handleBuy}>
             {PlusIcon} Köpt
           </button>
         </div>
+        {item.claude_analysis && (
+          <div className="recent-analysis-wrap" onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
+            <p className={`recent-analysis-text${showAnalysis ? ' expanded' : ''}`}>{item.claude_analysis}</p>
+            <button
+              className="recent-analysis-toggle"
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowAnalysis((v) => !v); }}
+            >
+              {showAnalysis ? 'Dölj ▲' : 'Visa bedömning ▼'}
+            </button>
+          </div>
+        )}
       </div>
     </a>
   );
