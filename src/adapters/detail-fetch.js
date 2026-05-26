@@ -159,7 +159,12 @@ export async function fetchListingPageDetails(url, headers = {}) {
     const imageUrl = $('meta[property="og:image"]').attr('content') || null;
 
     const price = jsonLd.price ?? nextData.price ?? null;
-    const location = jsonLd.location ?? nextData.location ?? null;
+
+    // Blocket embeds location in the map-link aria-label: "Öppna karta för 78168 Stockholm"
+    const mapAriaLabel = $('a[href*="/map"][aria-label]').first().attr('aria-label') ?? '';
+    const mapMatch = mapAriaLabel.match(/\d{3}\s*\d{2}\s+(.+)/);
+    const locationFromMap = mapMatch ? mapMatch[1].trim() : null;
+    const location = locationFromMap ?? jsonLd.location ?? nextData.location ?? null;
 
     return {
       description,
