@@ -369,7 +369,9 @@ export function createBundle(name, itemIds) {
     "INSERT INTO portfolio_bundles (name) VALUES (?)"
   ).run(name);
   const bundleId = Number(result.lastInsertRowid);
-  const stmt = db.prepare('UPDATE portfolio SET bundle_id = ? WHERE id = ? AND bundle_id IS NULL');
+  const stmt = db.prepare(
+    'UPDATE portfolio SET bundle_id = ?, sold_at = NULL, sold_price = NULL WHERE id = ? AND bundle_id IS NULL'
+  );
   for (const id of itemIds) {
     stmt.run(bundleId, id);
   }
