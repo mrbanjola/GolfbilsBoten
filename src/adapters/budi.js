@@ -13,7 +13,9 @@ export class BudiAdapter extends BaseAdapter {
 
   async search(watch) {
     try {
-      const params = new URLSearchParams({ q: watch.query, s: 'sho' });
+      // Utelämna s=sho: Budis standardordning är "mest relevanta" medan
+      // sho sorterar på kortast tid kvar och blandar in irrelevanta objekt.
+      const params = new URLSearchParams({ q: watch.query });
       const url = `${BUDI_BASE}/objekt?${params}`;
       console.log(`[Budi] Söker: ${watch.query}`);
 
@@ -43,8 +45,16 @@ export class BudiAdapter extends BaseAdapter {
       const html = await response.text();
       await sleep(this.delayMs);
 
-      const listings = this.parseResults(html);
-      console.log(`[Budi] Parsade ${listings.length} auktioner (topp ${RESULT_LIMIT} kortast tid kvar)`);
+      const parsed = this.parseResults(html);
+      // Budi visar en generell fallback-lista när sökningen saknar träffar.
+      // Kräv därför minst en direkt textmatch innan det rankade svaret accepteras.
+      if (!this.hasDirectQueryMatch(parsed, watch.query)) {
+        console.log(`[Budi] Inga direkta träffar för "${watch.query}" — ignorerar fallback-listan`);
+        return [];
+      }
+
+      const listings = parsed.slice(0, RESULT_LIMIT);
+      console.log(`[Budi] Parsade ${listings.length} auktioner (topp ${RESULT_LIMIT} mest relevanta)`);
 
       return this.filterByPrice(listings, watch.min_price, watch.max_price);
     } catch (err) {
@@ -57,7 +67,7 @@ export class BudiAdapter extends BaseAdapter {
     const $ = cheerio.load(html);
     const results = [];
 
-    $('.budi-auctionobject__card').slice(0, RESULT_LIMIT).each((_, el) => {
+    $('.budi-auctionobject__card').each((_, el) => {
       const $el = $(el);
       const id = $el.attr('data-budi-auctionobject-id');
       const ended = $el.attr('data-budi-auctionobject-isended') === 'true';
@@ -95,6 +105,24 @@ export class BudiAdapter extends BaseAdapter {
     });
 
     return results;
+  }
+
+  normalizeSearchText(value) {
+    return String(value ?? '')
+      .normalize('NFKD')
+      .replace(/\p{M}/gu, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, ' ')
+      .trim();
+  }
+
+  hasDirectQueryMatch(listings, query) {
+    const terms = this.normalizeSearchText(query).split(/\s+/).filter((term) => term.length >= 2);
+    if (terms.length === 0) return listings.length > 0;
+    return listings.some((listing) => {
+      const searchable = this.normalizeSearchText(`${listing.title ?? ''} ${listing.subtitle ?? ''}`);
+      return terms.some((term) => searchable.includes(term));
+    });
   }
 
   parsePrice(text) {

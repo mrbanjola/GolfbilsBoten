@@ -16,7 +16,8 @@ export class JunoraAdapter extends BaseAdapter {
       const params = new URLSearchParams({
         page: '0',
         pageSize: String(RESULT_LIMIT),
-        sortBy: 'timeleft-ascending',
+        sortBy: 'timeleft',
+        sortOrder: 'Ascending',
         statusFilter: 'Active',
         search: watch.query,
       });
