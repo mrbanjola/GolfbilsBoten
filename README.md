@@ -12,6 +12,7 @@ A self-hosted bot that watches Swedish secondhand marketplaces and pushes new li
 - **AI profit estimates** — When historical sales data exists for a category, Claude estimates potential resale profit per listing
 - **Portfolio tracker** — Log purchases, track costs, record sales, and see per-category profit analytics
 - **Auction support** — Silently tracks auction listings and only alerts when < 1 hour remains
+- **Auction dashboard** — Live overview with category/platform filters, time and price sorting, and persistent interesting/ignored states
 - **Pause/resume watches** — Temporarily silence a search without deleting it
 - **Admin dashboard** — Full web UI for managing watches, portfolio, tags, and settings
 
@@ -221,6 +222,7 @@ Available at `http://localhost:{PORT}/admin` (protected by basic auth if `ADMIN_
 | Tab | Content |
 |-----|---------|
 | **Bevakningar** | Manage watches, configure AI settings, manage Facebook session |
+| **Auktioner** | Browse active auctions, inspect supply by category, and mark items as interesting or ignored |
 | **Statistik** | Indexed listings by platform/day/watch, recent notifications |
 | **Portfolio** | Purchase log, profit analytics, bundle management, tag registry |
 

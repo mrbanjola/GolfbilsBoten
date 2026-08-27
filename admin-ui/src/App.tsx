@@ -3,9 +3,10 @@ import { api } from './api/client';
 import { WatchesView } from './components/watches/WatchesView';
 import { StatsView } from './components/stats/StatsView';
 import { PortfolioView } from './components/portfolio/PortfolioView';
+import { AuctionsView } from './components/auctions/AuctionsView';
 import type { Tag } from './api/types';
 
-type Tab = 'watches' | 'stats' | 'portfolio';
+type Tab = 'watches' | 'auctions' | 'stats' | 'portfolio';
 
 export function App() {
   const [tab, setTab] = useState<Tab>('watches');
@@ -41,15 +42,22 @@ export function App() {
           <span className="brand-name">Begagnat Monitor</span>
         </div>
         <div className="header-right">
-          <span style={{ fontSize: '.82rem', color: 'var(--text-3)' }}>{searchResult}</span>
-          <button className="btn-ghost" onClick={manualSearch} disabled={searching}>
-            {searching ? <><span className="spinner" /> Söker...</> : 'Sök nu'}
-          </button>
+          {tab === 'auctions' ? (
+            <span style={{ fontSize: '.76rem', color: 'var(--text-3)' }}>Uppdateras automatiskt</span>
+          ) : (
+            <>
+              <span style={{ fontSize: '.82rem', color: 'var(--text-3)' }}>{searchResult}</span>
+              <button className="btn-ghost" onClick={manualSearch} disabled={searching}>
+                {searching ? <><span className="spinner" /> Söker...</> : 'Sök nu'}
+              </button>
+            </>
+          )}
         </div>
       </header>
 
       <main>
         {tab === 'watches' && <WatchesView />}
+        {tab === 'auctions' && <AuctionsView />}
         {tab === 'stats' && <StatsView conditionTags={conditionTags} />}
         {tab === 'portfolio' && (
           <PortfolioView conditionTags={conditionTags} allTags={allTags} onTagsLoaded={handleTagsLoaded} />
@@ -57,9 +65,9 @@ export function App() {
       </main>
 
       <nav className="bottom-nav">
-        {(['watches', 'stats', 'portfolio'] as Tab[]).map((t) => {
-          const icons: Record<Tab, string> = { watches: '📋', stats: '📊', portfolio: '💰' };
-          const labels: Record<Tab, string> = { watches: 'Bevakningar', stats: 'Statistik', portfolio: 'Portfolio' };
+        {(['watches', 'auctions', 'stats', 'portfolio'] as Tab[]).map((t) => {
+          const icons: Record<Tab, string> = { watches: '📋', auctions: '🔨', stats: '📊', portfolio: '💰' };
+          const labels: Record<Tab, string> = { watches: 'Bevakningar', auctions: 'Auktioner', stats: 'Statistik', portfolio: 'Portfolio' };
           return (
             <button key={t} className={`nav-tab${tab === t ? ' active' : ''}`} onClick={() => setTab(t)}>
               <span className="nav-icon">{icons[t]}</span>

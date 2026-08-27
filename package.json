@@ -6,6 +6,7 @@
   "main": "src/index.js",
   "scripts": {
     "start": "playwright install chromium && node src/index.js",
+    "test": "node --test test/*.test.js",
     "dev:admin": "cd admin-ui && npm run dev",
     "build:admin": "cd admin-ui && npm run build"
   },

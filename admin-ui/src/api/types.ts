@@ -137,3 +137,47 @@ export interface PrefetchResult {
 export interface AnalyzeResponse {
   analysis: string;
 }
+
+export type AuctionReviewState = 'unreviewed' | 'interesting' | 'ignored';
+export type AuctionStatus = 'active' | 'ended' | 'unknown';
+
+export interface AuctionItem {
+  platform: string;
+  external_id: string;
+  title: string;
+  subtitle: string | null;
+  current_price: number | null;
+  currency: string;
+  bid_count: number;
+  auction_end: string | null;
+  location: string | null;
+  url: string;
+  image_url: string | null;
+  no_reserve: number;
+  reserve_met: number;
+  auction_status: AuctionStatus;
+  review_state: AuctionReviewState;
+  first_seen_at: string;
+  last_seen_at: string;
+  categories: string[];
+  watch_queries: string[];
+}
+
+export interface AuctionListResponse {
+  items: AuctionItem[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export interface AuctionSummary {
+  active: number;
+  interesting: number;
+  ignored: number;
+  ending_1h: number;
+  ending_6h: number;
+  ending_24h: number;
+  last_updated_at: string | null;
+  byCategory: { category: string; count: number; avg_price: number | null }[];
+  byPlatform: { platform: string; count: number }[];
+}

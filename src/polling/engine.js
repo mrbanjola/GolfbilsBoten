@@ -1,5 +1,5 @@
 import cron from 'node-cron';
-import { getActiveWatches, getAiSettings, markInitialScanDone, getTags, getConditionTags, getProfitHistory, getBlacklist } from '../db/database.js';
+import { getActiveWatches, getAiSettings, markInitialScanDone, getTags, getConditionTags, getProfitHistory, getBlacklist, upsertAuctions, expireAuctions } from '../db/database.js';
 import { BlocketAdapter } from '../adapters/blocket.js';
 import { TraderaAdapter } from '../adapters/tradera.js';
 import { KlaravikAdapter } from '../adapters/klaravik.js';
@@ -161,6 +161,7 @@ async function applyAiRelevanceFilter({ adapter, watch, listings, aiSettings }) 
 }
 
 export async function runPollCycle({ manual = false } = {}) {
+  expireAuctions();
   const watches = getActiveWatches();
   if (watches.length === 0) return { totalNew: 0, manual };
 
@@ -201,6 +202,13 @@ export async function runPollCycle({ manual = false } = {}) {
       try {
         const raw = await adapter.search(watch);
         const filtered = applyAllFilters(raw, watch, globalBlacklist);
+
+        if (AUCTION_PLATFORMS.has(platformName)) {
+          const persisted = upsertAuctions(filtered, watch);
+          console.log(
+            `[Auctions] "${watch.query}" (${platformName}): ${persisted.created} nya, ${persisted.updated} uppdaterade`
+          );
+        }
 
         if (!watch.initial_scan_done) {
           markAllSeen(filtered, watch.id);

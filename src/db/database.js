@@ -336,6 +336,286 @@ export function getStats() {
 
 // ── Portfolio ──────────────────────────────────────────────────────────────
 
+// Auctions
+
+const AUCTION_REVIEW_STATES = new Set(['unreviewed', 'interesting', 'ignored']);
+
+/**
+ * Normaliserar plattformarnas olika sluttidsformat till UTC ISO 8601.
+ * Tider utan offset (Blinto) tolkas som svensk lokal tid.
+ */
+function normalizeAuctionEnd(value) {
+  if (!value) return null;
+  const raw = String(value).trim();
+  if (!raw) return null;
+
+  const localMatch = raw.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?$/);
+  if (localMatch) {
+    const [, year, month, day, hour, minute, second = '0'] = localMatch;
+    const targetAsUtc = Date.UTC(+year, +month - 1, +day, +hour, +minute, +second);
+    const formatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Europe/Stockholm',
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit',
+      hourCycle: 'h23',
+    });
+    const parts = Object.fromEntries(
+      formatter.formatToParts(new Date(targetAsUtc)).map((part) => [part.type, part.value])
+    );
+    const stockholmAsUtc = Date.UTC(
+      +parts.year, +parts.month - 1, +parts.day, +parts.hour, +parts.minute, +parts.second
+    );
+    return new Date(targetAsUtc - (stockholmAsUtc - targetAsUtc)).toISOString();
+  }
+
+  const parsed = new Date(raw);
+  return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
+}
+
+/**
+ * Skapar eller uppdaterar auktioner från en lyckad bevakningssökning.
+ * review_state ändras aldrig av pollingen.
+ */
+export function upsertAuctions(listings, watch) {
+  if (!listings.length) return { created: 0, updated: 0 };
+
+  const existsStmt = db.prepare(
+    'SELECT 1 FROM auction_items WHERE platform = ? AND external_id = ?'
+  );
+  const upsertItem = db.prepare(`
+    INSERT INTO auction_items (
+      platform, external_id, title, subtitle, current_price, currency, bid_count,
+      auction_end, location, url, image_url, no_reserve, reserve_met, auction_status,
+      ended_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(platform, external_id) DO UPDATE SET
+      title = excluded.title,
+      subtitle = excluded.subtitle,
+      current_price = excluded.current_price,
+      currency = excluded.currency,
+      bid_count = excluded.bid_count,
+      auction_end = excluded.auction_end,
+      location = excluded.location,
+      url = excluded.url,
+      image_url = COALESCE(excluded.image_url, auction_items.image_url),
+      no_reserve = excluded.no_reserve,
+      reserve_met = excluded.reserve_met,
+      auction_status = excluded.auction_status,
+      last_seen_at = datetime('now'),
+      updated_at = datetime('now'),
+      ended_at = excluded.ended_at
+  `);
+  const upsertMatch = db.prepare(`
+    INSERT INTO auction_matches (platform, external_id, watch_id, category)
+    VALUES (?, ?, ?, ?)
+    ON CONFLICT(platform, external_id, watch_id) DO UPDATE SET
+      category = excluded.category,
+      last_matched_at = datetime('now')
+  `);
+
+  let created = 0;
+  let updated = 0;
+  db.exec('BEGIN');
+  try {
+    for (const listing of listings) {
+      const platform = String(listing.platform ?? '').trim();
+      const externalId = String(listing.id ?? '').trim();
+      if (!platform || !externalId || !listing.title || !listing.url) continue;
+
+      const existed = !!existsStmt.get(platform, externalId);
+      const auctionEnd = normalizeAuctionEnd(listing.auctionEnd);
+      const ended = Boolean(listing.ended) || (auctionEnd ? Date.parse(auctionEnd) <= Date.now() : false);
+      upsertItem.run(
+        platform,
+        externalId,
+        String(listing.title),
+        listing.subtitle ? String(listing.subtitle) : null,
+        Number.isFinite(listing.price) ? Math.round(listing.price) : null,
+        listing.currency ? String(listing.currency) : 'SEK',
+        Number.isFinite(listing.bidCount) ? Math.max(0, Math.round(listing.bidCount)) : 0,
+        auctionEnd,
+        listing.location ? String(listing.location) : null,
+        String(listing.url),
+        listing.imageUrl ? String(listing.imageUrl) : null,
+        listing.noReserve ? 1 : 0,
+        listing.reserveMet ? 1 : 0,
+        ended ? 'ended' : 'active',
+        ended ? new Date().toISOString() : null,
+      );
+      upsertMatch.run(platform, externalId, Number(watch.id), watch.category || 'uncategorized');
+      if (existed) updated++;
+      else created++;
+    }
+    db.exec('COMMIT');
+  } catch (error) {
+    db.exec('ROLLBACK');
+    throw error;
+  }
+  return { created, updated };
+}
+
+/** Markerar auktioner vars sluttid passerat som avslutade. */
+export function expireAuctions() {
+  const result = db.prepare(`
+    UPDATE auction_items
+    SET auction_status = 'ended', ended_at = COALESCE(ended_at, datetime('now')), updated_at = datetime('now')
+    WHERE auction_status = 'active'
+      AND auction_end IS NOT NULL
+      AND julianday(auction_end) <= julianday('now')
+  `).run();
+  return Number(result.changes);
+}
+
+function auctionWhereClause(filters = {}) {
+  const clauses = [];
+  const values = [];
+  const status = filters.status || 'active';
+  if (status !== 'all') {
+    clauses.push('ai.auction_status = ?');
+    values.push(status);
+  }
+
+  const review = filters.review || 'visible';
+  if (review === 'visible') clauses.push("ai.review_state != 'ignored'");
+  else if (AUCTION_REVIEW_STATES.has(review)) {
+    clauses.push('ai.review_state = ?');
+    values.push(review);
+  }
+
+  if (filters.platform) {
+    clauses.push('ai.platform = ?');
+    values.push(filters.platform);
+  }
+  if (filters.category) {
+    clauses.push(`EXISTS (
+      SELECT 1 FROM auction_matches am_filter
+      WHERE am_filter.platform = ai.platform
+        AND am_filter.external_id = ai.external_id
+        AND am_filter.category = ?
+    )`);
+    values.push(filters.category);
+  }
+  if (filters.q) {
+    clauses.push('(ai.title LIKE ? OR ai.subtitle LIKE ? OR ai.location LIKE ?)');
+    const pattern = `%${filters.q}%`;
+    values.push(pattern, pattern, pattern);
+  }
+  return { sql: clauses.length ? `WHERE ${clauses.join(' AND ')}` : '', values };
+}
+
+/** Hämtar filtrerade och sorterade auktioner. */
+export function getAuctions(filters = {}) {
+  expireAuctions();
+  const { sql: whereSql, values } = auctionWhereClause(filters);
+  const sortOptions = {
+    end_asc: '(ai.auction_end IS NULL) ASC, ai.auction_end ASC',
+    end_desc: '(ai.auction_end IS NULL) ASC, ai.auction_end DESC',
+    price_asc: '(ai.current_price IS NULL) ASC, ai.current_price ASC',
+    price_desc: '(ai.current_price IS NULL) ASC, ai.current_price DESC',
+    newest: 'ai.first_seen_at DESC',
+    interesting: "(ai.review_state = 'interesting') DESC, (ai.auction_end IS NULL) ASC, ai.auction_end ASC",
+  };
+  const orderBy = sortOptions[filters.sort] || sortOptions.end_asc;
+  const limit = Math.min(Math.max(Number(filters.limit) || 100, 1), 250);
+  const offset = Math.max(Number(filters.offset) || 0, 0);
+
+  const items = db.prepare(`
+    SELECT ai.*,
+      GROUP_CONCAT(DISTINCT COALESCE(am.category, 'uncategorized')) AS category_list,
+      GROUP_CONCAT(DISTINCT w.query) AS watch_query_list
+    FROM auction_items ai
+    LEFT JOIN auction_matches am
+      ON am.platform = ai.platform AND am.external_id = ai.external_id
+    LEFT JOIN watches w ON w.id = am.watch_id
+    ${whereSql}
+    GROUP BY ai.platform, ai.external_id
+    ORDER BY ${orderBy}
+    LIMIT ? OFFSET ?
+  `).all(...values, limit, offset);
+
+  const total = db.prepare(`SELECT COUNT(*) AS count FROM auction_items ai ${whereSql}`)
+    .get(...values).count;
+
+  return {
+    items: items.map((item) => ({
+      ...item,
+      categories: item.category_list ? item.category_list.split(',') : ['uncategorized'],
+      watch_queries: item.watch_query_list ? item.watch_query_list.split(',') : [],
+      category_list: undefined,
+      watch_query_list: undefined,
+    })),
+    total: Number(total),
+    limit,
+    offset,
+  };
+}
+
+/** Summering för auktionsdashboarden. Ignorerade räknas separat men inte i utbudet. */
+export function getAuctionSummary() {
+  expireAuctions();
+  const totals = db.prepare(`
+    SELECT
+      SUM(CASE WHEN auction_status = 'active' AND review_state != 'ignored' THEN 1 ELSE 0 END) AS active,
+      SUM(CASE WHEN auction_status = 'active' AND review_state = 'interesting' THEN 1 ELSE 0 END) AS interesting,
+      SUM(CASE WHEN auction_status = 'active' AND review_state = 'ignored' THEN 1 ELSE 0 END) AS ignored,
+      SUM(CASE WHEN auction_status = 'active' AND review_state != 'ignored'
+        AND auction_end IS NOT NULL AND julianday(auction_end) <= julianday('now', '+1 hour') THEN 1 ELSE 0 END) AS ending_1h,
+      SUM(CASE WHEN auction_status = 'active' AND review_state != 'ignored'
+        AND auction_end IS NOT NULL AND julianday(auction_end) <= julianday('now', '+6 hours') THEN 1 ELSE 0 END) AS ending_6h,
+      SUM(CASE WHEN auction_status = 'active' AND review_state != 'ignored'
+        AND auction_end IS NOT NULL AND julianday(auction_end) <= julianday('now', '+24 hours') THEN 1 ELSE 0 END) AS ending_24h,
+      MAX(last_seen_at) AS last_updated_at
+    FROM auction_items
+  `).get();
+
+  const byCategory = db.prepare(`
+    SELECT am.category,
+      COUNT(DISTINCT ai.platform || ':' || ai.external_id) AS count,
+      ROUND(AVG(ai.current_price)) AS avg_price
+    FROM auction_items ai
+    JOIN auction_matches am
+      ON am.platform = ai.platform AND am.external_id = ai.external_id
+    WHERE ai.auction_status = 'active' AND ai.review_state != 'ignored'
+    GROUP BY am.category
+    ORDER BY count DESC, am.category ASC
+  `).all();
+
+  const byPlatform = db.prepare(`
+    SELECT platform, COUNT(*) AS count
+    FROM auction_items
+    WHERE auction_status = 'active' AND review_state != 'ignored'
+    GROUP BY platform
+    ORDER BY count DESC, platform ASC
+  `).all();
+
+  return {
+    active: Number(totals.active ?? 0),
+    interesting: Number(totals.interesting ?? 0),
+    ignored: Number(totals.ignored ?? 0),
+    ending_1h: Number(totals.ending_1h ?? 0),
+    ending_6h: Number(totals.ending_6h ?? 0),
+    ending_24h: Number(totals.ending_24h ?? 0),
+    last_updated_at: totals.last_updated_at ?? null,
+    byCategory: byCategory.map((row) => ({
+      ...row,
+      count: Number(row.count),
+      avg_price: row.avg_price == null ? null : Number(row.avg_price),
+    })),
+    byPlatform: byPlatform.map((row) => ({ ...row, count: Number(row.count) })),
+  };
+}
+
+/** Ändrar användarens klassificering av en auktion. */
+export function updateAuctionReview(platform, externalId, reviewState) {
+  if (!AUCTION_REVIEW_STATES.has(reviewState)) throw new Error('Ogiltig auktionsstatus');
+  const result = db.prepare(`
+    UPDATE auction_items
+    SET review_state = ?, reviewed_at = datetime('now'), updated_at = datetime('now')
+    WHERE platform = ? AND external_id = ?
+  `).run(reviewState, platform, externalId);
+  return result.changes > 0;
+}
+
 export function addPurchase({ listingId, platform, title, url, imageUrl, watchQuery, purchasePrice }) {
   const result = db.prepare(
     'INSERT INTO portfolio (listing_id, platform, title, url, image_url, watch_query, purchase_price) VALUES (?, ?, ?, ?, ?, ?, ?)'

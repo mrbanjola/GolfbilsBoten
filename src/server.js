@@ -3,7 +3,7 @@ import basicAuth from 'express-basic-auth';
 import { existsSync, writeFileSync, statSync, mkdirSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import { getWatchesList, addWatch, removeWatch, updateWatch, getAiSettings, updateAiSettings, getStats, addPurchase, markSold, getPortfolio, updatePortfolioImageUrl, updatePortfolioItem, replacePortfolioCosts, deletePortfolioItem, createBundle, getBundles, markBundleSold, updateBundle, dissolveBundle, getTags, getConditionTags, addTag, updateTagGuidelines, deleteTag, setPortfolioTags, getPortfolioAnalytics, getBlacklist, addBlacklistWord, removeBlacklistWord } from './db/database.js';
+import { getWatchesList, addWatch, removeWatch, updateWatch, getAiSettings, updateAiSettings, getStats, addPurchase, markSold, getPortfolio, updatePortfolioImageUrl, updatePortfolioItem, replacePortfolioCosts, deletePortfolioItem, createBundle, getBundles, markBundleSold, updateBundle, dissolveBundle, getTags, getConditionTags, addTag, updateTagGuidelines, deleteTag, setPortfolioTags, getPortfolioAnalytics, getBlacklist, addBlacklistWord, removeBlacklistWord, getAuctions, getAuctionSummary, updateAuctionReview } from './db/database.js';
 import { LOCATIONS_LIST, CATEGORIES_LIST, PORTFOLIO_CATEGORIES } from './constants.js';
 import { fetchListingPageDetails } from './adapters/detail-fetch.js';
 
@@ -141,6 +141,46 @@ export function startServer(port, callbacks) {
 
   app.get('/api/stats', (_req, res) => {
     res.json(getStats());
+  });
+
+  // Auktionsdashboard
+
+  app.get('/api/auctions', (req, res) => {
+    const allowedStatuses = new Set(['active', 'ended', 'unknown', 'all']);
+    const allowedReviews = new Set(['visible', 'unreviewed', 'interesting', 'ignored', 'all']);
+    const allowedSorts = new Set(['end_asc', 'end_desc', 'price_asc', 'price_desc', 'newest', 'interesting']);
+    const status = String(req.query.status || 'active');
+    const review = String(req.query.review || 'visible');
+    const sort = String(req.query.sort || 'end_asc');
+
+    if (!allowedStatuses.has(status)) return res.status(400).json({ error: 'Ogiltigt statusfilter' });
+    if (!allowedReviews.has(review)) return res.status(400).json({ error: 'Ogiltigt reviewfilter' });
+    if (!allowedSorts.has(sort)) return res.status(400).json({ error: 'Ogiltig sortering' });
+
+    res.json(getAuctions({
+      status,
+      review,
+      sort,
+      platform: req.query.platform ? String(req.query.platform) : null,
+      category: req.query.category ? String(req.query.category) : null,
+      q: req.query.q ? String(req.query.q).trim().slice(0, 100) : null,
+      limit: req.query.limit,
+      offset: req.query.offset,
+    }));
+  });
+
+  app.get('/api/auctions/summary', (_req, res) => {
+    res.json(getAuctionSummary());
+  });
+
+  app.patch('/api/auctions/:platform/:id/review', (req, res) => {
+    const reviewState = String(req.body.review_state || '');
+    if (!['unreviewed', 'interesting', 'ignored'].includes(reviewState)) {
+      return res.status(400).json({ error: 'review_state måste vara unreviewed, interesting eller ignored' });
+    }
+    const ok = updateAuctionReview(req.params.platform, req.params.id, reviewState);
+    if (!ok) return res.status(404).json({ error: 'Auktionen hittades inte' });
+    res.json({ ok: true });
   });
 
   // ── AI-inställningar ──────────────────────────────────────────────────────
